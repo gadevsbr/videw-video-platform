@@ -1,0 +1,35 @@
+/.env*
+!/.env.example
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/node_modules/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+/.idea/
+/.vscode/
+
+# Logs / temp
+*.log
+*.tmp
+*.temp
+*.bak
+
+# PHP / tooling cache
+/.phpunit.cache/
+/.php-cs-fixer.cache
+/phpunit.result.cache
+/.cache/
+
+# Build / archives
+/dist/
+/build/
+*.zip
+*.tar
+*.gz
+*.rar
+
+# Dependency directories not used in repo
+/vendor/

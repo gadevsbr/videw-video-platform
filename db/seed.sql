@@ -1,0 +1,11 @@
+INSERT INTO `videos`
+(`slug`, `title`, `synopsis`, `creator_name`, `category`, `access_level`, `duration_minutes`, `poster_tone`, `poster_url`, `poster_path`, `video_url`, `file_path`, `trailer_url`, `embed_url`, `mime_type`, `original_source_url`, `source_type`, `storage_provider`, `is_featured`, `moderation_status`, `published_at`)
+VALUES
+('editorial-after-hours', 'Editorial After Hours', 'Clean studio shoot with a premium access tag.', 'Nadia Vale', 'Studio', 'premium', 42, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 1, 'approved', '2026-03-21 19:20:00'),
+('private-loft-series', 'Private Loft Series', 'Solo release with direct presentation and premium access.', 'Lia North', 'Solo', 'premium', 28, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 1, 'approved', '2026-03-19 22:10:00'),
+('couples-archive-madrid', 'Couples Archive / Madrid', 'Couples set published for Premium subscribers.', 'Atelier 24', 'Couples', 'premium', 55, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 1, 'approved', '2026-03-16 18:40:00'),
+('creator-verified-session-08', 'Creator Verified Session 08', 'Free preview with a verified creator profile.', 'Mika Shore', 'Verified', 'free', 14, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 0, 'approved', '2026-03-15 10:20:00'),
+('studio-ledger-vol-2', 'Studio Ledger Vol. 2', 'Longer studio release for premium users.', 'Studio Ledger', 'Studio', 'premium', 63, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 0, 'approved', '2026-03-12 21:45:00'),
+('late-checkout-notes', 'Late Checkout Notes', 'Simple premium release with a direct layout.', 'Nadia Vale', 'Solo', 'premium', 31, 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 0, 'approved', '2026-03-09 20:30:00'),
+('consent-ledger-berlin', 'Consent Ledger / Berlin', 'Premium archive item with creator records on file.', 'Atelier 24', 'Couples', 'premium', 47, 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 0, 'approved', '2026-03-04 17:05:00'),
+('membership-briefing-cut', 'Membership Briefing Cut', 'Short free clip used as a simple onboarding sample.', 'Platform Originals', 'Behind the Scenes', 'free', 11, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'upload', 'local', 0, 'approved', '2026-03-01 09:15:00');

@@ -1,0 +1,16 @@
+{
+  "name": "videw",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Adult-only video platform starter using PHP, MySQL, JavaScript, CSS, and @bragamateus/gui",
+  "scripts": {
+    "check:js": "node --check assets/js/app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@bragamateus/gui": "^1.0.1"
+  }
+}
