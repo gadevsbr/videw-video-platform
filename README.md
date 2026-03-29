@@ -117,12 +117,7 @@ After cloning the project:
 1. Create a MySQL database matching `VIDEW_DB_DATABASE`.
 2. Select that database in phpMyAdmin.
 3. Import `db/schema.sql`.
-4. Optionally import `db/seed.sql`.
-5. If you are upgrading an older install, also run:
-   - `db/upgrade-20260328-embed-wasabi.sql`
-   - `db/upgrade-20260328-admin-suite.sql`
-   - `db/upgrade-20260328-backlog-features.sql`
-   - `db/upgrade-20260329-stripe-premium.sql`
+
 
 ## Stripe Setup
 
