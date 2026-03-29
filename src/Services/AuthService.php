@@ -54,7 +54,7 @@ final class AuthService
         if (!Database::connection()) {
             return [
                 'success' => false,
-                'message' => 'Database unavailable. Import the MySQL schema before using sign in.',
+                'message' => 'Database unavailable. Check the MySQL host, database name, username, password, and confirm db/schema.sql was imported.',
             ];
         }
 

@@ -170,7 +170,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. Import the MySQL schema before creating users.');
+            throw new RuntimeException('Database unavailable. Check the MySQL host, database name, username, password, and confirm db/schema.sql was imported.');
         }
 
         try {

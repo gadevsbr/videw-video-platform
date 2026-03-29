@@ -4,6 +4,14 @@ declare(strict_types=1);
 
 function env_value(string $key, ?string $default = null): ?string
 {
+    if (array_key_exists($key, $_ENV)) {
+        return is_scalar($_ENV[$key]) ? (string) $_ENV[$key] : $default;
+    }
+
+    if (array_key_exists($key, $_SERVER)) {
+        return is_scalar($_SERVER[$key]) ? (string) $_SERVER[$key] : $default;
+    }
+
     $value = getenv($key);
     return $value === false ? $default : $value;
 }
@@ -69,7 +77,11 @@ function load_env_file(string $path): void
         }
 
         $value = parse_env_value($rawValue);
-        putenv($key . '=' . $value);
+
+        if (function_exists('putenv')) {
+            @putenv($key . '=' . $value);
+        }
+
         $_ENV[$key] = $value;
         $_SERVER[$key] = $value;
     }
