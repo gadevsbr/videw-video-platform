@@ -4,7 +4,7 @@ return [
     'app' => [
         'name' => (string) env_value('VIDEW_APP_NAME', 'VIDEW 18+'),
         'description' => (string) env_value('VIDEW_APP_DESCRIPTION', 'Adult-only video platform with verified creators, age gate, and private catalog access.'),
-        'base_url' => rtrim((string) env_value('VIDEW_BASE_URL', 'http://localhost/videw'), '/'),
+        'base_url' => rtrim((string) env_value('VIDEW_BASE_URL', ''), '/'),
         'support_email' => (string) env_value('VIDEW_SUPPORT_EMAIL', 'compliance@videw.local'),
         'brand_kicker' => (string) env_value('VIDEW_BRAND_KICKER', 'VIDEW'),
         'brand_title' => (string) env_value('VIDEW_BRAND_TITLE', '18+'),
@@ -30,10 +30,7 @@ return [
     ],
     'storage' => [
         'local_root' => project_path((string) env_value('VIDEW_LOCAL_STORAGE_ROOT', 'storage/uploads')),
-        'local_public_base_url' => rtrim(
-            (string) env_value('VIDEW_LOCAL_STORAGE_BASE_URL', ((string) env_value('VIDEW_BASE_URL', 'http://localhost/videw') . '/storage/uploads')),
-            '/'
-        ),
+        'local_public_base_url' => rtrim((string) env_value('VIDEW_LOCAL_STORAGE_BASE_URL', ''), '/'),
         'default_driver' => (string) env_value('VIDEW_STORAGE_DRIVER', 'local'),
         'wasabi_endpoint' => (string) env_value('VIDEW_WASABI_ENDPOINT', 'https://s3.wasabisys.com'),
         'wasabi_region' => (string) env_value('VIDEW_WASABI_REGION', 'us-east-1'),

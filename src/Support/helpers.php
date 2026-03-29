@@ -20,10 +20,17 @@ function config(string $key, mixed $default = null): mixed
 
 function base_url(string $path = ''): string
 {
-    $baseUrl = config('app.base_url', '');
+    $configuredBaseUrl = rtrim((string) config('app.base_url', ''), '/');
+    $baseUrl = runtime_should_use_request_origin($configuredBaseUrl)
+        ? request_url()
+        : $configuredBaseUrl;
 
     if ($path === '') {
         return $baseUrl;
+    }
+
+    if ($baseUrl === '') {
+        return request_url($path);
     }
 
     return $baseUrl . '/' . ltrim($path, '/');
@@ -32,6 +39,98 @@ function base_url(string $path = ''): string
 function asset(string $path): string
 {
     return base_url($path);
+}
+
+function request_origin(): string
+{
+    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+
+    if ($host === '') {
+        return '';
+    }
+
+    $https = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+    $https = $https || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
+    $scheme = $https ? 'https' : 'http';
+
+    return $scheme . '://' . $host;
+}
+
+function request_base_path(): string
+{
+    $scriptName = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+
+    if ($scriptName === '') {
+        return '';
+    }
+
+    $directory = dirname($scriptName);
+
+    if ($directory === '/' || $directory === '.' || $directory === '\\') {
+        return '';
+    }
+
+    return rtrim($directory, '/');
+}
+
+function request_url(string $path = ''): string
+{
+    $origin = request_origin();
+    $basePath = request_base_path();
+    $baseUrl = $origin . $basePath;
+
+    if ($path === '') {
+        return rtrim($baseUrl, '/');
+    }
+
+    if ($baseUrl === '') {
+        return '/' . ltrim($path, '/');
+    }
+
+    return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
+}
+
+function runtime_should_use_request_origin(string $configuredUrl): bool
+{
+    $configuredUrl = trim($configuredUrl);
+
+    if ($configuredUrl === '') {
+        return true;
+    }
+
+    $requestOrigin = request_origin();
+
+    if ($requestOrigin === '') {
+        return false;
+    }
+
+    $configuredOrigin = url_origin($configuredUrl);
+
+    return $configuredOrigin !== '' && $configuredOrigin !== $requestOrigin;
+}
+
+function url_origin(string $url): string
+{
+    $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+    $host = (string) parse_url($url, PHP_URL_HOST);
+    $port = parse_url($url, PHP_URL_PORT);
+
+    if ($scheme === '' || $host === '') {
+        return '';
+    }
+
+    return $scheme . '://' . $host . ($port ? ':' . $port : '');
+}
+
+function local_storage_public_base_url(?string $configuredUrl = null): string
+{
+    $configuredUrl = rtrim(trim((string) $configuredUrl), '/');
+
+    if ($configuredUrl === '' || runtime_should_use_request_origin($configuredUrl)) {
+        return base_url('storage/uploads');
+    }
+
+    return $configuredUrl;
 }
 
 function gui_runtime_tags(): string

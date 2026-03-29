@@ -44,7 +44,7 @@ final class StorageManager
             )
             : new LocalStorageDriver(
                 (string) config('storage.local_root', ROOT_PATH . '/storage/uploads'),
-                (string) config('storage.local_public_base_url', base_url('storage/uploads'))
+                local_storage_public_base_url((string) config('storage.local_public_base_url', ''))
             );
     }
 
