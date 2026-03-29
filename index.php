@@ -10,6 +10,7 @@ use App\Services\MediaAccessService;
 $repository = new VideoRepository();
 $mediaAccess = new MediaAccessService();
 $videos = $mediaAccess->decorateVideos($repository->listPublished());
+$publicVideos = array_map(static fn (array $video): array => public_catalog_video_payload($video), $videos);
 $featured = array_values(array_filter($videos, static fn (array $video): bool => (int) $video['is_featured'] === 1));
 $featured = $featured ?: array_slice($videos, 0, 3);
 $heroVideo = $featured[0] ?? $videos[0] ?? null;
@@ -21,7 +22,7 @@ $heroQueue = array_slice($heroQueue, 0, 3);
 $stats = $repository->stats();
 $bootPayload = default_bootstrap_payload('home', [
     'usingFallback' => $repository->usingFallback(),
-    'videos' => $videos,
+    'videos' => $publicVideos,
     'stats' => $stats,
     'categories' => $repository->categories(),
 ]);
@@ -67,7 +68,7 @@ clear_old_input();
                     <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Admin</a>
                 <?php endif; ?>
                 <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Dashboard</a>
-                <a class="button button--ghost" href="<?= e(base_url('logout.php')); ?>">Log out</a>
+                <?= logout_button('Log out'); ?>
             <?php else: ?>
                 <a class="button button--ghost" href="<?= e(base_url('login.php')); ?>">Sign in</a>
                 <a class="button" href="<?= e(base_url('register.php')); ?>">Join</a>

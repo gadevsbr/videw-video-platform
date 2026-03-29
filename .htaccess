@@ -1,0 +1,14 @@
+Options -Indexes
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "^(?:\.env(?:\..*)?|\.gitattributes|\.gitignore|package(?:-lock)?\.json|README\.md|TODO-admin-suite\.md)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule "(^|/)\.(?:git|env)" - [F,L,NC]
+    RewriteRule "^node_modules/@bragamateus/gui/gui(?:/.*)?$" - [L,NC]
+    RewriteRule "^(?:src|config|db|partials|node_modules|storage)(?:/|$)" - [F,L,NC]
+</IfModule>

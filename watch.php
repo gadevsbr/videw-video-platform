@@ -155,7 +155,7 @@ $user = current_user();
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
-                    <?php if ($video['original_source_url']): ?>
+                    <?php if ($video['original_source_url'] && is_admin()): ?>
                         <div class="notice-card">
                             <strong>Original URL</strong>
                             <a class="text-link" href="<?= e((string) $video['original_source_url']); ?>" target="_blank" rel="noreferrer"><?= e((string) $video['original_source_url']); ?></a>

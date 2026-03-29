@@ -100,6 +100,14 @@ function csrf_input(string $key = 'default'): string
     return '<input type="hidden" name="_csrf" value="' . e(csrf_token($key)) . '">';
 }
 
+function logout_button(string $label = 'Log out', string $classes = 'button button--ghost'): string
+{
+    return '<form method="post" action="' . e(base_url('logout.php')) . '" class="inline-form">'
+        . csrf_input('logout')
+        . '<button class="' . e($classes) . '" type="submit">' . e($label) . '</button>'
+        . '</form>';
+}
+
 function verify_csrf(?string $token, string $key = 'default'): bool
 {
     $sessionToken = $_SESSION['_csrf'][$key] ?? null;
@@ -136,6 +144,13 @@ function redirect(string $path): never
     exit;
 }
 
+function client_ip_address(): string
+{
+    $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+
+    return $ip !== '' ? $ip : 'unknown';
+}
+
 function request_method(): string
 {
     return strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -168,6 +183,14 @@ function current_user(bool $fresh = false): ?array
         $freshUser = $repository->findById($sessionUserId);
 
         if (is_array($freshUser)) {
+            if ((string) ($freshUser['status'] ?? 'active') !== 'active') {
+                unset($_SESSION['auth_user']);
+                $resolvedUser = null;
+                $resolvedUserId = null;
+
+                return null;
+            }
+
             $_SESSION['auth_user'] = [
                 'id' => $freshUser['id'] ?? $sessionUserId,
                 'display_name' => $freshUser['display_name'] ?? ($sessionUser['display_name'] ?? 'Account'),
@@ -299,6 +322,10 @@ function user_has_premium_access(?array $user = null): bool
         return false;
     }
 
+    if ((string) ($user['status'] ?? 'active') !== 'active') {
+        return false;
+    }
+
     if ((string) ($user['role'] ?? '') === 'admin') {
         return true;
     }
@@ -412,6 +439,28 @@ function page_bootstrap(array $payload): string
 {
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return $json ?: '{}';
+}
+
+/**
+ * @param array<string, mixed> $video
+ * @return array<string, mixed>
+ */
+function public_catalog_video_payload(array $video): array
+{
+    return [
+        'slug' => (string) ($video['slug'] ?? ''),
+        'title' => (string) ($video['title'] ?? ''),
+        'synopsis' => (string) ($video['synopsis'] ?? ''),
+        'creator_name' => (string) ($video['creator_name'] ?? ''),
+        'category' => (string) ($video['category'] ?? ''),
+        'access_level' => (string) ($video['access_level'] ?? 'free'),
+        'access_label' => (string) ($video['access_label'] ?? 'Free'),
+        'duration_minutes' => (int) ($video['duration_minutes'] ?? 0),
+        'duration_label' => (string) ($video['duration_label'] ?? '0min'),
+        'resolved_poster_url' => (string) (($video['resolved_poster_url'] ?? $video['poster_url']) ?? ''),
+        'resolved_listing_poster_url' => (string) (($video['resolved_listing_poster_url'] ?? $video['listing_poster_url'] ?? $video['poster_url']) ?? ''),
+        'published_at' => $video['published_at'] ?? null,
+    ];
 }
 
 function slugify(string $value): string

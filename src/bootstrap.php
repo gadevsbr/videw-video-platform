@@ -12,14 +12,32 @@ date_default_timezone_set((string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paul
 $GLOBALS['app_config'] = require ROOT_PATH . '/config/app.php';
 require ROOT_PATH . '/src/Support/helpers.php';
 
+if (!headers_sent()) {
+    header_remove('X-Powered-By');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name((string) config('session.name', 'videw_session'));
     ini_set('session.use_only_cookies', '1');
     ini_set('session.use_strict_mode', '1');
+    $cookieSecure = (bool) config('session.cookie_secure', false);
+
+    if (
+        !$cookieSecure
+        && (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off'
+            || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443)
+    ) {
+        $cookieSecure = true;
+    }
+
     session_set_cookie_params([
         'lifetime' => (int) config('session.cookie_lifetime', 0),
         'path' => '/',
-        'secure' => (bool) config('session.cookie_secure', false),
+        'secure' => $cookieSecure,
         'httponly' => (bool) config('session.cookie_http_only', true),
         'samesite' => (string) config('session.cookie_same_site', 'Lax'),
     ]);

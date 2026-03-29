@@ -13,6 +13,7 @@ if (is_authenticated()) {
 $flashError = null;
 $flashSuccess = null;
 $resetUrl = null;
+$showResetLink = (bool) config('security.expose_reset_links', false);
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'forgot_password')) {
@@ -64,9 +65,13 @@ if (is_post_request()) {
                     <input type="email" name="email" value="<?= e(old('email')); ?>" required>
                 </label>
                 <button class="button" type="submit">Generate reset link</button>
-                <p class="form-note">This starter shows the reset link directly because email delivery is not configured yet.</p>
+                <?php if ($showResetLink): ?>
+                    <p class="form-note">Development mode is exposing reset links directly. Disable `VIDEW_DEBUG_EXPOSE_RESET_LINKS` in production.</p>
+                <?php else: ?>
+                    <p class="form-note">Use your configured delivery channel to complete the reset flow.</p>
+                <?php endif; ?>
             </form>
-            <?php if ($resetUrl): ?>
+            <?php if ($showResetLink && $resetUrl): ?>
                 <div class="security-note">
                     <strong>Reset link</strong>
                     <code><?= e($resetUrl); ?></code>

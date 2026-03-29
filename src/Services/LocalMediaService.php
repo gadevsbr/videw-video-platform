@@ -25,11 +25,9 @@ final class LocalMediaService
             $this->abort(404, 'Media not found.');
         }
 
-        if ($asset === 'video') {
-            if (!can_watch_video($video)) {
-                $this->abort(403, 'Premium access required.');
-            }
+        $this->assertAssetAccess($video, $asset);
 
+        if ($asset === 'video') {
             $storageProvider = (string) ($video['storage_provider'] ?? '');
 
             if ($storageProvider === 'local' && !empty($video['file_path'])) {
@@ -37,7 +35,11 @@ final class LocalMediaService
             }
 
             if ($storageProvider === 'wasabi' && !empty($video['file_path'])) {
-                $this->redirectToWasabi((string) $video['file_path'], video_requires_premium($video));
+                if (video_requires_premium($video)) {
+                    $this->proxyWasabi((string) $video['file_path'], (string) ($video['mime_type'] ?? 'video/mp4'), true);
+                }
+
+                $this->redirectToWasabi((string) $video['file_path'], false);
             }
 
             $this->abort(404, 'Media not found.');
@@ -54,6 +56,23 @@ final class LocalMediaService
         $this->abort(404, 'Media not found.');
     }
 
+    /**
+     * @param array<string, mixed> $video
+     */
+    private function assertAssetAccess(array $video, string $asset): void
+    {
+        $isPublished = (string) ($video['moderation_status'] ?? 'draft') === 'approved'
+            && empty($video['deleted_at']);
+
+        if (!$isPublished && !is_admin()) {
+            $this->abort(404, 'Media not found.');
+        }
+
+        if ($asset === 'video' && !can_watch_video($video)) {
+            $this->abort(403, 'Premium access required.');
+        }
+    }
+
     private function redirectToWasabi(string $objectPath, bool $privateCache): never
     {
         try {
@@ -66,6 +85,133 @@ final class LocalMediaService
 
         header('Cache-Control: ' . ($privateCache ? 'private, no-store, max-age=0' : 'public, max-age=300'));
         header('Location: ' . $signedUrl, true, 302);
+        exit;
+    }
+
+    private function proxyWasabi(string $objectPath, string $fallbackMimeType, bool $supportsRanges): never
+    {
+        if (!function_exists('curl_init')) {
+            $this->abort(500, 'cURL is required to proxy premium media.');
+        }
+
+        try {
+            $ttl = (int) ($this->settings->get('wasabi_signed_url_ttl_seconds', (string) config('storage.wasabi_signed_url_ttl_seconds', '900')) ?? '900');
+            $ttl = max(60, min(604800, $ttl));
+            $signedUrl = $this->storage->wasabiClient()->presignGetObject($objectPath, $ttl);
+        } catch (RuntimeException $exception) {
+            $this->abort(500, $exception->getMessage());
+        }
+
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
+        $contentType = $fallbackMimeType !== '' ? $fallbackMimeType : 'application/octet-stream';
+        $contentLength = null;
+        $contentRange = null;
+        $statusCode = 200;
+        $headersCommitted = false;
+        $curl = curl_init($signedUrl);
+
+        if (!$curl) {
+            $this->abort(500, 'Could not initialize the remote media stream.');
+        }
+
+        $requestHeaders = [];
+
+        if ($supportsRanges && isset($_SERVER['HTTP_RANGE'])) {
+            $requestHeaders[] = 'Range: ' . (string) $_SERVER['HTTP_RANGE'];
+        }
+
+        curl_setopt_array($curl, [
+            CURLOPT_RETURNTRANSFER => false,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_HTTPHEADER => $requestHeaders,
+            CURLOPT_HEADERFUNCTION => static function ($ch, string $headerLine) use (&$contentType, &$contentLength, &$contentRange, &$statusCode): int {
+                $trimmed = trim($headerLine);
+
+                if ($trimmed === '') {
+                    return strlen($headerLine);
+                }
+
+                if (preg_match('#^HTTP/\S+\s+(\d{3})#', $trimmed, $matches) === 1) {
+                    $statusCode = (int) $matches[1];
+                    return strlen($headerLine);
+                }
+
+                [$name, $value] = array_pad(explode(':', $trimmed, 2), 2, '');
+                $name = strtolower(trim($name));
+                $value = trim($value);
+
+                if ($name === 'content-type' && $value !== '') {
+                    $contentType = $value;
+                }
+
+                if ($name === 'content-length' && ctype_digit($value)) {
+                    $contentLength = (int) $value;
+                }
+
+                if ($name === 'content-range' && $value !== '') {
+                    $contentRange = $value;
+                }
+
+                return strlen($headerLine);
+            },
+            CURLOPT_WRITEFUNCTION => static function ($ch, string $chunk) use (&$headersCommitted, &$statusCode, &$contentType, &$contentLength, &$contentRange, $supportsRanges): int {
+                if (!$headersCommitted) {
+                    http_response_code($statusCode === 206 ? 206 : 200);
+                    header('Content-Type: ' . $contentType);
+                    header('Content-Disposition: inline');
+                    header('Cache-Control: private, no-store, max-age=0');
+
+                    if ($supportsRanges) {
+                        header('Accept-Ranges: bytes');
+                    }
+
+                    if ($contentLength !== null) {
+                        header('Content-Length: ' . $contentLength);
+                    }
+
+                    if ($contentRange !== null) {
+                        header('Content-Range: ' . $contentRange);
+                    }
+
+                    $headersCommitted = true;
+                }
+
+                echo $chunk;
+                flush();
+
+                return strlen($chunk);
+            },
+        ]);
+
+        $result = curl_exec($curl);
+        $curlError = curl_error($curl);
+        $statusCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE) ?: $statusCode;
+        curl_close($curl);
+
+        if ($result === false) {
+            $this->abort(502, $curlError !== '' ? $curlError : 'Could not proxy the media stream.');
+        }
+
+        if (!$headersCommitted) {
+            if ($statusCode === 416) {
+                $this->abort(416, 'Requested range not satisfiable.');
+            }
+
+            if ($statusCode >= 400) {
+                $this->abort(404, 'Media not found.');
+            }
+
+            http_response_code($statusCode === 206 ? 206 : 200);
+            header('Content-Type: ' . $contentType);
+            header('Content-Disposition: inline');
+            header('Cache-Control: private, no-store, max-age=0');
+            exit;
+        }
+
         exit;
     }
 

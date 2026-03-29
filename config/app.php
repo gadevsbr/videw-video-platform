@@ -25,6 +25,9 @@ return [
         'cookie_http_only' => env_flag('VIDEW_SESSION_HTTP_ONLY', true),
         'cookie_same_site' => (string) env_value('VIDEW_SESSION_SAME_SITE', 'Lax'),
     ],
+    'security' => [
+        'expose_reset_links' => env_flag('VIDEW_DEBUG_EXPOSE_RESET_LINKS', false),
+    ],
     'storage' => [
         'local_root' => project_path((string) env_value('VIDEW_LOCAL_STORAGE_ROOT', 'storage/uploads')),
         'local_public_base_url' => rtrim(

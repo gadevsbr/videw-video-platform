@@ -2,6 +2,7 @@
 !/.env.example
 /storage/uploads/*
 !/storage/uploads/.gitkeep
+/storage/runtime/
 /node_modules/
 
 # OS / editor

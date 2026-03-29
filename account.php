@@ -110,7 +110,7 @@ $flashSuccess = flash('success');
         </nav>
         <div class="site-nav__actions">
             <span class="pill pill--muted"><?= e((string) $user['display_name']); ?></span>
-            <a class="button button--ghost" href="<?= e(base_url('logout.php')); ?>">Log out</a>
+            <?= logout_button('Log out'); ?>
         </div>
     </header>
     <main class="page-shell">
@@ -229,7 +229,7 @@ $flashSuccess = flash('success');
                 <?php if (is_admin()): ?>
                     <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Open admin</a>
                 <?php endif; ?>
-                <a class="button button--ghost" href="<?= e(base_url('logout.php')); ?>">End session</a>
+                <?= logout_button('End session'); ?>
             </div>
         </section>
     </main>

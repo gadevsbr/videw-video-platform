@@ -29,6 +29,6 @@ $filtered = array_values(array_filter($videos, static function (array $video) us
 }));
 
 echo json_encode([
-    'videos' => $filtered,
+    'videos' => array_map(static fn (array $video): array => public_catalog_video_payload($video), $filtered),
     'fallback' => $repository->usingFallback(),
 ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

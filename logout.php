@@ -6,7 +6,12 @@ require __DIR__ . '/src/bootstrap.php';
 
 use App\Services\AuthService;
 
+if (!is_post_request() || !verify_csrf($_POST['_csrf'] ?? null, 'logout')) {
+    http_response_code(405);
+    redirect('');
+}
+
 $auth = new AuthService();
 $auth->logout();
-flash('success', 'Sessão encerrada.');
+flash('success', 'Session ended.');
 redirect('');

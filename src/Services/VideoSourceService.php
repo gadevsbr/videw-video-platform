@@ -19,6 +19,8 @@ final class VideoSourceService
             throw new RuntimeException('Enter a valid external URL.');
         }
 
+        $this->assertAllowedExternalUrl($normalized);
+
         if ($this->isDirectVideoUrl($normalized)) {
             return [
                 'source_type' => 'external_file',
@@ -101,10 +103,30 @@ final class VideoSourceService
             }
         }
 
-        if (str_contains($path, '/embed/')) {
-            return $url;
+        return null;
+    }
+
+    private function assertAllowedExternalUrl(string $url): void
+    {
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $user = trim((string) parse_url($url, PHP_URL_USER));
+        $pass = trim((string) parse_url($url, PHP_URL_PASS));
+
+        if ($scheme !== 'https') {
+            throw new RuntimeException('External video URLs must use HTTPS.');
         }
 
-        return null;
+        if ($host === '' || $user !== '' || $pass !== '') {
+            throw new RuntimeException('Enter a valid public external URL.');
+        }
+
+        if ($host === 'localhost' || !str_contains($host, '.') || preg_match('/\.(local|internal|test|home|lan)$/', $host) === 1) {
+            throw new RuntimeException('Local or internal URLs are not allowed.');
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) && !filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            throw new RuntimeException('Private or reserved IP ranges are not allowed.');
+        }
     }
 }

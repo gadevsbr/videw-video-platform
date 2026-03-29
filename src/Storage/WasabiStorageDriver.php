@@ -50,7 +50,7 @@ final class WasabiStorageDriver implements StorageDriverInterface
 
         $originalName = (string) ($file['name'] ?? 'file.bin');
         $mimeType = $this->detectMimeType((string) $file['tmp_name'], (string) ($file['type'] ?? 'application/octet-stream'));
-        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $extension = $this->validatedExtension($originalName, $mimeType, $directory);
         $safeName = slugify(pathinfo($originalName, PATHINFO_FILENAME));
         $extensionSuffix = $extension !== '' ? '.' . $extension : '';
         $relativePath = trim($directory, '/') . '/' . date('Y/m') . '/' . uniqid($safeName . '-', true) . $extensionSuffix;
@@ -97,5 +97,36 @@ final class WasabiStorageDriver implements StorageDriverInterface
         }
 
         return $fallback !== '' ? $fallback : 'application/octet-stream';
+    }
+
+    private function validatedExtension(string $originalName, string $mimeType, string $directory): string
+    {
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowlist = match ($directory) {
+            'videos' => [
+                'mp4' => ['video/mp4', 'application/mp4'],
+                'm4v' => ['video/mp4', 'video/x-m4v'],
+                'webm' => ['video/webm'],
+                'mov' => ['video/quicktime'],
+            ],
+            'posters' => [
+                'jpg' => ['image/jpeg'],
+                'jpeg' => ['image/jpeg'],
+                'png' => ['image/png'],
+                'webp' => ['image/webp'],
+                'gif' => ['image/gif'],
+            ],
+            default => [],
+        };
+
+        if ($allowlist === [] || !isset($allowlist[$extension])) {
+            throw new RuntimeException('Unsupported file extension for this upload type.');
+        }
+
+        if (!in_array($mimeType, $allowlist[$extension], true)) {
+            throw new RuntimeException('Unsupported file type for this upload.');
+        }
+
+        return $extension;
     }
 }

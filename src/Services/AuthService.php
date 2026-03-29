@@ -7,16 +7,28 @@ namespace App\Services;
 use App\Database;
 use App\Repositories\PasswordResetRepository;
 use App\Repositories\UserRepository;
+use App\Security\RateLimiter;
 use DateTimeImmutable;
 use RuntimeException;
 use Throwable;
 
 final class AuthService
 {
+    private const LOGIN_RATE_LIMIT_WINDOW = 600;
+    private const LOGIN_RATE_LIMIT_MAX_IP = 25;
+    private const LOGIN_RATE_LIMIT_MAX_CREDENTIAL = 8;
+    private const RESET_RATE_LIMIT_WINDOW = 900;
+    private const RESET_RATE_LIMIT_MAX_IP = 6;
+    private const RESET_RATE_LIMIT_MAX_EMAIL = 3;
+    private const MFA_RATE_LIMIT_WINDOW = 600;
+    private const MFA_RATE_LIMIT_MAX_IP = 10;
+    private const MFA_RATE_LIMIT_MAX_USER = 6;
+
     public function __construct(
         private readonly UserRepository $users = new UserRepository(),
         private readonly PasswordResetRepository $passwordResets = new PasswordResetRepository(),
-        private readonly TwoFactorService $twoFactor = new TwoFactorService()
+        private readonly TwoFactorService $twoFactor = new TwoFactorService(),
+        private readonly RateLimiter $rateLimiter = new RateLimiter()
     ) {
     }
 
@@ -25,6 +37,20 @@ final class AuthService
      */
     public function attemptLogin(string $email, string $password): array
     {
+        $email = trim($email);
+        $ipKey = $this->loginIpKey();
+        $credentialKey = $this->loginCredentialKey($email);
+
+        if ($this->rateLimiter->tooManyAttempts($ipKey, self::LOGIN_RATE_LIMIT_MAX_IP, self::LOGIN_RATE_LIMIT_WINDOW)
+            || $this->rateLimiter->tooManyAttempts($credentialKey, self::LOGIN_RATE_LIMIT_MAX_CREDENTIAL, self::LOGIN_RATE_LIMIT_WINDOW)) {
+            return [
+                'success' => false,
+                'message' => $this->throttleMessage(
+                    $this->retryAfterSeconds([$ipKey, $credentialKey], self::LOGIN_RATE_LIMIT_WINDOW)
+                ),
+            ];
+        }
+
         if (!Database::connection()) {
             return [
                 'success' => false,
@@ -32,9 +58,12 @@ final class AuthService
             ];
         }
 
-        $user = $this->users->findByEmail(trim($email));
+        $user = $this->users->findByEmail($email);
 
         if (!$user || !password_verify($password, (string) $user['password_hash'])) {
+            $this->rateLimiter->hit($ipKey, self::LOGIN_RATE_LIMIT_WINDOW);
+            $this->rateLimiter->hit($credentialKey, self::LOGIN_RATE_LIMIT_WINDOW);
+
             return [
                 'success' => false,
                 'message' => 'Invalid email or password.',
@@ -49,6 +78,7 @@ final class AuthService
         }
 
         if ((int) ($user['mfa_enabled'] ?? 0) === 1) {
+            $this->clearLoginRateLimits($email);
             $this->setPendingMfaUser($user);
 
             return [
@@ -58,6 +88,7 @@ final class AuthService
             ];
         }
 
+        $this->clearLoginRateLimits($email);
         $this->storeUser($user);
         $this->users->touchLastLogin((int) ($user['id'] ?? 0));
 
@@ -146,7 +177,23 @@ final class AuthService
      */
     public function requestPasswordReset(string $email): array
     {
-        $user = $this->users->findByEmail(trim($email));
+        $email = trim($email);
+        $ipKey = $this->passwordResetIpKey();
+        $emailKey = $this->passwordResetEmailKey($email);
+
+        if ($this->rateLimiter->tooManyAttempts($ipKey, self::RESET_RATE_LIMIT_MAX_IP, self::RESET_RATE_LIMIT_WINDOW)
+            || $this->rateLimiter->tooManyAttempts($emailKey, self::RESET_RATE_LIMIT_MAX_EMAIL, self::RESET_RATE_LIMIT_WINDOW)) {
+            return [
+                'success' => false,
+                'message' => $this->throttleMessage(
+                    $this->retryAfterSeconds([$ipKey, $emailKey], self::RESET_RATE_LIMIT_WINDOW)
+                ),
+            ];
+        }
+
+        $user = $this->users->findByEmail($email);
+        $this->rateLimiter->hit($ipKey, self::RESET_RATE_LIMIT_WINDOW);
+        $this->rateLimiter->hit($emailKey, self::RESET_RATE_LIMIT_WINDOW);
 
         if (!$user) {
             return [
@@ -169,11 +216,17 @@ final class AuthService
             ];
         }
 
-        return [
+        $response = [
             'success' => true,
-            'message' => 'Reset link generated. This starter project shows the link directly because email delivery is not configured yet.',
-            'reset_url' => base_url('reset-password.php?token=' . urlencode($token)),
+            'message' => 'If the account exists, a reset link has been generated.',
         ];
+
+        if ((bool) config('security.expose_reset_links', false)) {
+            $response['message'] = 'Reset link generated for development mode.';
+            $response['reset_url'] = base_url('reset-password.php?token=' . urlencode($token));
+        }
+
+        return $response;
     }
 
     /**
@@ -226,9 +279,24 @@ final class AuthService
             return ['success' => false, 'message' => 'Your MFA session expired. Sign in again.'];
         }
 
+        $ipKey = $this->mfaIpKey();
+        $userKey = $this->mfaUserKey((int) ($user['id'] ?? 0));
+
+        if ($this->rateLimiter->tooManyAttempts($ipKey, self::MFA_RATE_LIMIT_MAX_IP, self::MFA_RATE_LIMIT_WINDOW)
+            || $this->rateLimiter->tooManyAttempts($userKey, self::MFA_RATE_LIMIT_MAX_USER, self::MFA_RATE_LIMIT_WINDOW)) {
+            return [
+                'success' => false,
+                'message' => $this->throttleMessage(
+                    $this->retryAfterSeconds([$ipKey, $userKey], self::MFA_RATE_LIMIT_WINDOW)
+                ),
+            ];
+        }
+
         $verification = $this->verifyMfaCode($user, $code, true);
 
         if (!$verification['valid']) {
+            $this->rateLimiter->hit($ipKey, self::MFA_RATE_LIMIT_WINDOW);
+            $this->rateLimiter->hit($userKey, self::MFA_RATE_LIMIT_WINDOW);
             return ['success' => false, 'message' => 'Invalid 2FA code.'];
         }
 
@@ -243,6 +311,8 @@ final class AuthService
         $this->storeUser($this->users->findById((int) $user['id']) ?? $user);
         $this->users->touchLastLogin((int) ($user['id'] ?? 0));
         $this->clearPendingMfaUser();
+        $this->rateLimiter->clear($ipKey);
+        $this->rateLimiter->clear($userKey);
 
         return [
             'success' => true,
@@ -387,7 +457,8 @@ final class AuthService
 
     public function logout(): void
     {
-        unset($_SESSION['auth_user']);
+        $_SESSION = [];
+        $this->rotateSession();
         $this->clearPendingMfaUser();
         $this->clearPendingMfaSetup();
     }
@@ -403,7 +474,15 @@ final class AuthService
             return null;
         }
 
-        return $this->users->findById($userId);
+        $user = $this->users->findById($userId);
+
+        if (!$user || (string) ($user['status'] ?? 'active') !== 'active') {
+            $this->clearPendingMfaUser();
+
+            return null;
+        }
+
+        return $user;
     }
 
     /**
@@ -411,6 +490,7 @@ final class AuthService
      */
     private function setPendingMfaUser(array $user): void
     {
+        $this->rotateSession();
         $_SESSION['pending_mfa_user_id'] = (int) ($user['id'] ?? 0);
         $_SESSION['pending_mfa_started_at'] = time();
     }
@@ -463,6 +543,7 @@ final class AuthService
      */
     private function storeUser(array $user): void
     {
+        $this->rotateSession();
         $_SESSION['auth_user'] = [
             'id' => $user['id'] ?? null,
             'display_name' => $user['display_name'] ?? 'Account',
@@ -475,5 +556,69 @@ final class AuthService
             'stripe_subscription_status' => $user['stripe_subscription_status'] ?? null,
             'mfa_enabled' => (int) ($user['mfa_enabled'] ?? 0),
         ];
+    }
+
+    private function rotateSession(): void
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+    }
+
+    private function clearLoginRateLimits(string $email): void
+    {
+        $this->rateLimiter->clear($this->loginIpKey());
+        $this->rateLimiter->clear($this->loginCredentialKey($email));
+    }
+
+    private function loginIpKey(): string
+    {
+        return 'login:ip:' . client_ip_address();
+    }
+
+    private function loginCredentialKey(string $email): string
+    {
+        return 'login:credential:' . hash('sha256', strtolower(trim($email)) . '|' . client_ip_address());
+    }
+
+    private function passwordResetIpKey(): string
+    {
+        return 'password-reset:ip:' . client_ip_address();
+    }
+
+    private function passwordResetEmailKey(string $email): string
+    {
+        return 'password-reset:email:' . hash('sha256', strtolower(trim($email)));
+    }
+
+    private function mfaIpKey(): string
+    {
+        return 'mfa:ip:' . client_ip_address();
+    }
+
+    private function mfaUserKey(int $userId): string
+    {
+        return 'mfa:user:' . $userId . '|ip:' . client_ip_address();
+    }
+
+    /**
+     * @param array<int, string> $keys
+     */
+    private function retryAfterSeconds(array $keys, int $windowSeconds): int
+    {
+        $retryAfter = 0;
+
+        foreach ($keys as $key) {
+            $retryAfter = max($retryAfter, $this->rateLimiter->availableIn($key, $windowSeconds));
+        }
+
+        return max(60, $retryAfter);
+    }
+
+    private function throttleMessage(int $seconds): string
+    {
+        $minutes = max(1, (int) ceil($seconds / 60));
+
+        return 'Too many attempts. Try again in about ' . $minutes . ' minute' . ($minutes === 1 ? '' : 's') . '.';
     }
 }

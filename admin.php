@@ -38,6 +38,10 @@ if (is_post_request()) {
 
     if ($action === 'save_storage') {
         try {
+            $currentWasabiAccessKey = (string) config('storage.wasabi_access_key', '');
+            $currentWasabiSecretKey = (string) config('storage.wasabi_secret_key', '');
+            $submittedWasabiAccessKey = trim((string) ($_POST['wasabi_access_key'] ?? ''));
+            $submittedWasabiSecretKey = trim((string) ($_POST['wasabi_secret_key'] ?? ''));
             $storageSettings = [
                 'upload_driver' => in_array((string) ($_POST['upload_driver'] ?? 'local'), ['local', 'wasabi'], true)
                     ? (string) $_POST['upload_driver']
@@ -45,8 +49,8 @@ if (is_post_request()) {
                 'wasabi_endpoint' => trim((string) ($_POST['wasabi_endpoint'] ?? '')),
                 'wasabi_region' => trim((string) ($_POST['wasabi_region'] ?? '')),
                 'wasabi_bucket' => trim((string) ($_POST['wasabi_bucket'] ?? '')),
-                'wasabi_access_key' => trim((string) ($_POST['wasabi_access_key'] ?? '')),
-                'wasabi_secret_key' => trim((string) ($_POST['wasabi_secret_key'] ?? '')),
+                'wasabi_access_key' => $submittedWasabiAccessKey !== '' ? $submittedWasabiAccessKey : $currentWasabiAccessKey,
+                'wasabi_secret_key' => $submittedWasabiSecretKey !== '' ? $submittedWasabiSecretKey : $currentWasabiSecretKey,
                 'wasabi_public_base_url' => trim((string) ($_POST['wasabi_public_base_url'] ?? '')),
                 'wasabi_path_prefix' => trim((string) ($_POST['wasabi_path_prefix'] ?? 'videw')),
                 'wasabi_private_bucket' => (string) (($_POST['wasabi_private_bucket'] ?? '') === '1' ? '1' : '0'),
@@ -71,10 +75,14 @@ if (is_post_request()) {
 
     if ($action === 'save_billing_settings') {
         try {
+            $currentStripeSecretKey = (string) config('billing.stripe_secret_key', '');
+            $currentStripeWebhookSecret = (string) config('billing.stripe_webhook_secret', '');
+            $submittedStripeSecretKey = trim((string) ($_POST['stripe_secret_key'] ?? ''));
+            $submittedStripeWebhookSecret = trim((string) ($_POST['stripe_webhook_secret'] ?? ''));
             $billingSettings = [
-                'stripe_secret_key' => trim((string) ($_POST['stripe_secret_key'] ?? (string) config('billing.stripe_secret_key'))),
+                'stripe_secret_key' => $submittedStripeSecretKey !== '' ? $submittedStripeSecretKey : $currentStripeSecretKey,
                 'stripe_publishable_key' => trim((string) ($_POST['stripe_publishable_key'] ?? (string) config('billing.stripe_publishable_key'))),
-                'stripe_webhook_secret' => trim((string) ($_POST['stripe_webhook_secret'] ?? (string) config('billing.stripe_webhook_secret'))),
+                'stripe_webhook_secret' => $submittedStripeWebhookSecret !== '' ? $submittedStripeWebhookSecret : $currentStripeWebhookSecret,
                 'premium_price_id' => trim((string) ($_POST['premium_price_id'] ?? (string) config('billing.premium_price_id'))),
                 'premium_plan_name' => trim((string) ($_POST['premium_plan_name'] ?? (string) config('billing.premium_plan_name'))),
                 'premium_plan_copy' => trim((string) ($_POST['premium_plan_copy'] ?? (string) config('billing.premium_plan_copy'))),
@@ -538,7 +546,7 @@ if ($screen === 'activity' && (string) ($_GET['export'] ?? '') === 'csv') {
     $output = fopen('php://output', 'wb');
 
     if (is_resource($output)) {
-        fputcsv($output, ['id', 'action', 'target_type', 'target_id', 'summary', 'actor_name', 'actor_email', 'created_at', 'metadata_json']);
+        fputcsv($output, ['id', 'action', 'target_type', 'target_id', 'summary', 'actor_name', 'created_at']);
 
         foreach ($exportItems as $item) {
             fputcsv($output, [
@@ -548,9 +556,7 @@ if ($screen === 'activity' && (string) ($_GET['export'] ?? '') === 'csv') {
                 $item['target_id'] ?? '',
                 $item['summary'] ?? '',
                 $item['actor_name'] ?? '',
-                $item['actor_email'] ?? '',
                 $item['created_at'] ?? '',
-                $item['metadata_json'] ?? '',
             ]);
         }
 
@@ -671,7 +677,7 @@ $currentScreen = $screenMeta[$screen];
         </nav>
         <div class="site-nav__actions">
             <span class="pill pill--muted">admin</span>
-            <a class="button button--ghost" href="<?= e(base_url('logout.php')); ?>">Log out</a>
+            <?= logout_button('Log out'); ?>
         </div>
     </header>
 
@@ -908,11 +914,11 @@ $currentScreen = $screenMeta[$screen];
                                 </label>
                                 <label>
                                     <span>Access key</span>
-                                    <input type="text" name="wasabi_access_key" value="<?= e((string) ($settings['wasabi_access_key'] ?? '')); ?>">
+                                    <input type="text" name="wasabi_access_key" value="" placeholder="<?= trim((string) ($settings['wasabi_access_key'] ?? '')) !== '' ? 'Leave blank to keep current key' : 'Paste a new access key'; ?>" autocomplete="off">
                                 </label>
                                 <label>
                                     <span>Secret key</span>
-                                    <input type="password" name="wasabi_secret_key" value="<?= e((string) ($settings['wasabi_secret_key'] ?? '')); ?>">
+                                    <input type="password" name="wasabi_secret_key" value="" placeholder="<?= trim((string) ($settings['wasabi_secret_key'] ?? '')) !== '' ? 'Leave blank to keep current secret' : 'Paste a new secret key'; ?>" autocomplete="new-password">
                                 </label>
                             </div>
                         </section>
@@ -1015,7 +1021,7 @@ $currentScreen = $screenMeta[$screen];
                             <div class="admin-fields admin-fields--two">
                                 <label>
                                     <span>Secret key</span>
-                                    <input type="password" name="stripe_secret_key" value="<?= e($billingSettings['stripe_secret_key']); ?>" placeholder="sk_live_...">
+                                    <input type="password" name="stripe_secret_key" value="" placeholder="<?= trim((string) $billingSettings['stripe_secret_key']) !== '' ? 'Leave blank to keep current secret key' : 'sk_live_...'; ?>" autocomplete="new-password">
                                 </label>
                                 <label>
                                     <span>Publishable key</span>
@@ -1023,7 +1029,7 @@ $currentScreen = $screenMeta[$screen];
                                 </label>
                                 <label>
                                     <span>Webhook signing secret</span>
-                                    <input type="password" name="stripe_webhook_secret" value="<?= e($billingSettings['stripe_webhook_secret']); ?>" placeholder="whsec_...">
+                                    <input type="password" name="stripe_webhook_secret" value="" placeholder="<?= trim((string) $billingSettings['stripe_webhook_secret']) !== '' ? 'Leave blank to keep current webhook secret' : 'whsec_...'; ?>" autocomplete="new-password">
                                 </label>
                                 <label>
                                     <span>Premium price ID</span>

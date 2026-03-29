@@ -168,21 +168,5 @@ The app uses Stripe Hosted Checkout for upgrades and Stripe Billing Portal for s
 - For Premium assets on Wasabi, the app now routes playback through `media.php` so Premium videos are not exposed as plain public object URLs.
 - In this starter, password reset links are shown on-screen because outbound email is not configured.
 
-## Validation
-
-The current project has been checked with:
-
-- `php -l` on the touched PHP files
-- smoke rendering for login, register, forgot password, reset password, MFA challenge, and account
-- smoke rendering for the public `premium.php` page and the Stripe routes
-- smoke rendering for all admin screens:
-  - `overview`
-  - `storage`
-  - `billing`
-  - `publish`
-  - `library`
-  - `moderation`
-  - `users`
-  - `settings`
-  - `legal`
-  - `activity`
+## Tks for use
+## Stars, watches, PR's and issues are welcome, always focusing on spreading and improving the project!

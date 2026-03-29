@@ -167,6 +167,11 @@ textarea:focus {
   display: inline-flex;
 }
 
+.site-nav__actions form,
+.inline-form {
+  display: inline-flex;
+}
+
 .site-nav a,
 .site-nav__actions a {
   color: var(--muted);
