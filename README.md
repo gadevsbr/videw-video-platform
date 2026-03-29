@@ -96,43 +96,21 @@ The admin panel can write storage settings and general app settings back into `.
 The legal screen can also write footer links, public policy pages, and cookie notice content back into `.env`.
 The billing screen also writes Stripe credentials, the premium price ID, and pricing copy back into `.env`.
 
-## GitHub Publishing
+## Repository Notes
 
-This repository is prepared to be published publicly on GitHub.
+This repository is meant to stay public-friendly:
 
-Safe to commit:
+- source code, SQL files, `README.md`, `.env.example`, and npm manifests stay versioned
+- live secrets, uploaded media, and `node_modules` stay out of version control through `.gitignore`
 
-- application source code
-- `README.md`
-- `.env.example`
-- `package.json` and `package-lock.json`
-- SQL schema and upgrade files
-- `storage/uploads/.gitkeep`
-
-Do not commit:
-
-- `.env` or `.env.local`
-- real database credentials
-- real Wasabi credentials
-- real Stripe keys or webhook secrets
-- real uploaded media files
-- `node_modules`
-
-Before pushing the repository:
-
-1. Keep your real deployment values only in `.env` on the server.
-2. Review `.env.example` and leave only placeholder values there.
-3. Confirm `VIDEW_BASE_URL` and `VIDEW_LOCAL_STORAGE_BASE_URL` are examples, not live private URLs.
-4. Make sure no test or live keys were pasted into PHP, SQL, or markdown files.
-5. Leave `storage/uploads` empty except for `.gitkeep`.
-
-After cloning from GitHub:
+After cloning the project:
 
 1. Copy `.env.example` to `.env`.
-2. Run `npm install`.
-3. Import `db/schema.sql`.
-4. Run the required upgrade SQL files for older installs.
-5. Configure Wasabi and Stripe from the admin panel or directly in `.env`.
+2. Fill in your environment-specific values.
+3. Run `npm install`.
+4. Import `db/schema.sql`.
+5. Run any required upgrade SQL files for older installs.
+6. Configure Wasabi and Stripe from the admin panel or directly in `.env`.
 
 ## Database Setup
 
