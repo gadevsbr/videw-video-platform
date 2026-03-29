@@ -331,7 +331,7 @@ final class VideoRepository
                 'published_at' => $payload['published_at'],
             ]);
         } catch (Throwable $exception) {
-            throw new RuntimeException('The videos table is missing the latest columns. Run the latest upgrade SQL. ' . $exception->getMessage());
+            throw new RuntimeException('The videos table is missing or outdated. Import db/schema.sql or rerun install.php. ' . $exception->getMessage());
         }
 
         $this->cachedVideos = null;

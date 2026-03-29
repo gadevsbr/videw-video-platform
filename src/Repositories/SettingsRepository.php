@@ -106,7 +106,7 @@ final class SettingsRepository
                 ]);
             }
         } catch (Throwable $exception) {
-            throw new RuntimeException('Settings table missing. Run db/upgrade-20260328-embed-wasabi.sql. ' . $exception->getMessage());
+            throw new RuntimeException('Settings table missing. Import db/schema.sql or rerun install.php. ' . $exception->getMessage());
         }
     }
 

@@ -1,14 +1,20 @@
 {
   "name": "videw",
-  "private": true,
   "version": "1.0.0",
-  "description": "Adult-only video platform starter using PHP, MySQL, JavaScript, CSS, and @bragamateus/gui",
+  "description": "Open-source adult-only video platform starter using PHP, MySQL, JavaScript, CSS, and @bragamateus/gui",
   "scripts": {
-    "check:js": "node --check assets/js/app.js"
+    "check:js": "node --check assets/js/app.js",
+    "sync:gui": "node scripts/sync-gui-runtime.mjs"
   },
-  "keywords": [],
+  "keywords": [
+    "php",
+    "mysql",
+    "stripe",
+    "gui",
+    "video-platform"
+  ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@bragamateus/gui": "^1.0.1"

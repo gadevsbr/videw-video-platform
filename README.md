@@ -1,172 +1,186 @@
 # VIDEW 18+
 
-Adult-only video platform starter built with:
+Open-source adult-only video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
 
-- `PHP`
-- `MySQL`
-- `CSS`
-- `JavaScript`
-- `gUI`
+`VIDEW` includes:
 
-It includes local uploads, Wasabi storage, external embeds, age gating, account flow, 2FA, password reset, public legal pages, a cookie notice, and a multi-screen admin panel.
-It also includes Stripe-based `Free` vs `Premium` access with Hosted Checkout, Billing Portal, and webhook-driven account sync.
+- free vs premium catalog gating
+- Stripe subscriptions with Hosted Checkout and Billing Portal
+- local uploads, Wasabi uploads, and external embeds
+- account registration, password reset, and TOTP MFA
+- legal pages, cookie notice, and editable footer content
+- a multi-screen admin suite for publishing, moderation, billing, and settings
+- a lightweight web installer for shared hosting and small VPS deployments
 
 ## Frontend Runtime
 
-This project frontend was built with `gUI`.
+The frontend was built with `gUI`.
 
 - GitHub: `https://github.com/gadevsbr/gUI`
 - npm: `https://www.npmjs.com/package/@bragamateus/gui`
-- The frontend uses the official `@bragamateus/gui` npm package
 
-- Install dependencies with `npm install`
-- The PHP templates inject an `importmap` that maps `@bragamateus/gui` to the installed package inside `node_modules`
-- `assets/js/app.js` imports the framework from `@bragamateus/gui`
+The repository keeps a vendored runtime copy in `assets/vendor/gui` so production servers do not need `node_modules`.
+If you update the dependency locally, run `npm run sync:gui` to refresh the committed runtime files.
 
-## Stack
+## Repository Layout
 
-- `index.php`: home page and catalog
-- `watch.php`: video detail and player
-- `rules.php`, `terms.php`, `privacy.php`, `cookies.php`: public legal pages
-- `premium.php`: public pricing and upgrade page
+- `index.php`: public home and catalog
+- `watch.php`: video detail and player page
+- `premium.php`: public plans page
 - `login.php`, `register.php`, `account.php`: account flow
 - `forgot-password.php`, `reset-password.php`, `mfa-challenge.php`: security flows
-- `start-premium-checkout.php`, `manage-billing.php`: Stripe billing routes
-- `webhooks/stripe.php`: Stripe webhook endpoint
 - `admin.php`: admin suite
-- `api/videos.php`: catalog JSON endpoint
-- `api/session.php`: age gate session endpoint
-- `assets/js/app.js`: frontend app powered by `@bragamateus/gui`
-- `package.json`: frontend dependency manifest
-- `db/schema.sql`: base schema
-- `db/seed.sql`: example data
-- `db/upgrade-20260328-embed-wasabi.sql`: embed + Wasabi upgrade
-- `db/upgrade-20260328-admin-suite.sql`: admin suite upgrade
-- `db/upgrade-20260328-backlog-features.sql`: backlog features upgrade
-- `db/upgrade-20260329-stripe-premium.sql`: Stripe premium + account tier upgrade
+- `rules.php`, `terms.php`, `privacy.php`, `cookies.php`: public legal pages
+- `install.php`: web installer
+- `api/videos.php`, `api/session.php`: public JSON endpoints
+- `webhooks/stripe.php`: Stripe webhook endpoint
+- `assets/js/app.js`: public frontend app
+- `assets/vendor/gui`: committed `gUI` runtime for hosting without npm
+- `db/schema.sql`: clean install schema
+- `db/seed-demo.sql`: optional demo catalog seed
+- `scripts/sync-gui-runtime.mjs`: refresh the vendored `gUI` runtime from npm
 
-## Admin Suite
+## Requirements
 
-The admin panel is split into one screen per job:
+- PHP `8.1+`
+- MySQL `5.7+` or MariaDB `10.4+`
+- PHP extensions:
+  - `pdo_mysql`
+  - `curl`
+  - `mbstring`
+  - `json`
+  - `fileinfo`
+- Apache, Nginx, IIS, or any PHP-compatible shared hosting / VPS
 
-- `overview`: shortcuts and high-level stats
-- `storage`: local vs Wasabi, signed URLs, multipart thresholds
-- `billing`: save Stripe keys, webhook secret, premium price ID, and public plan copy into `.env`
-- `publish`: create videos from upload or external URL
-- `library`: search, filter, paginate, bulk edit, feature, and delete videos
-- `moderation`: paginate, bulk review, and move videos between `draft`, `approved`, and `flagged`
-- `users`: manage roles, account status, MFA visibility, and pagination
-- `settings`: save app branding and public settings into `.env`
-- `legal`: edit footer links, rules, terms, privacy, cookie page copy, and the cookie notice
-- `activity`: filter, paginate, and export the audit trail
+## Quick Start
 
-Security and operational basics included:
+### Option 1: Web Installer
 
-- CSRF protection on admin forms
-- audit log persistence
-- last active admin protection
-- suspended-user login block
-- file cleanup on delete/replacement
-- password reset token flow
-- optional TOTP-based MFA with backup codes
+1. Upload the project to your server.
+2. Open `https://your-domain.example/install.php`.
+3. Fill in the site URL and MySQL credentials.
+4. Choose whether to import the optional demo catalog.
+5. Finish the install.
+6. Register the first account on `register.php` to become the initial admin.
+
+The installer writes `.env`, imports `db/schema.sql`, optionally imports `db/seed-demo.sql`, prepares `storage/`, and locks itself after success.
+
+### Option 2: Manual Install
+
+1. Copy `.env.example` to `.env`.
+2. Fill in environment-specific values.
+3. Create the database configured in `VIDEW_DB_DATABASE`.
+4. Import `db/schema.sql`.
+5. Optionally import `db/seed-demo.sql`.
+6. Open `register.php` and create the first account. That account becomes `admin`.
 
 ## Environment
 
-1. Copy `.env.example` to `.env`.
-2. Fill in all environment-specific values.
-3. Optionally create `.env.local` for machine-specific overrides.
-4. Run `npm install`.
-5. Do not commit `.env` or `.env.local`.
+All secrets and deployment-specific values belong in `.env`.
 
-Sensitive or deployment-specific values should stay in `.env`, including:
+Examples:
 
-- app name and branding
+- database credentials
 - base URL and support email
-- footer copy and footer links
-- rules, terms, privacy, and cookie page content
-- cookie notice text and link target
-- exit URL and timezone
-- session settings
-- MySQL credentials
-- local storage paths
-- all `VIDEW_WASABI_*` values
-- all `VIDEW_STRIPE_*` values
+- Stripe keys and webhook secret
+- Wasabi credentials
+- footer and legal page content
+- cookie notice text
 
-The admin panel can write storage settings and general app settings back into `.env`.
-The legal screen can also write footer links, public policy pages, and cookie notice content back into `.env`.
-The billing screen also writes Stripe credentials, the premium price ID, and pricing copy back into `.env`.
+The admin suite can write app, storage, billing, and legal settings back into `.env`.
 
-## Repository Notes
+## Admin Suite
 
-This repository is meant to stay public-friendly:
+The admin panel is organized by job:
 
-- source code, SQL files, `README.md`, `.env.example`, and npm manifests stay versioned
-- live secrets, uploaded media, and `node_modules` stay out of version control through `.gitignore`
+- `overview`
+- `storage`
+- `billing`
+- `publish`
+- `library`
+- `moderation`
+- `users`
+- `settings`
+- `legal`
+- `activity`
 
-After cloning the project:
+It includes:
 
-1. Copy `.env.example` to `.env`.
-2. Fill in your environment-specific values.
-3. Run `npm install`.
-4. Import `db/schema.sql`.
-5. Run any required upgrade SQL files for older installs.
-6. Configure Wasabi and Stripe from the admin panel or directly in `.env`.
+- video create/edit/delete and bulk actions
+- moderation workflow
+- user role and suspension management
+- Stripe and Wasabi configuration
+- audit log filtering and CSV export
+- footer, terms, privacy, cookies, and notice editing
 
-## Database Setup
+## Billing
 
-1. Create a MySQL database matching `VIDEW_DB_DATABASE`.
-2. Select that database in phpMyAdmin.
-3. Import `db/schema.sql`.
+`VIDEW` uses Stripe Hosted Checkout for new Premium subscriptions and Stripe Billing Portal for self-service account management.
 
-
-## Stripe Setup
+Setup flow:
 
 1. Open `Admin > Billing`.
-2. Paste your Stripe secret key, publishable key, webhook signing secret, and recurring `price_...` ID.
-3. Set the public plan name, copy, and price label.
-4. Save the screen so the values are written into `.env`.
-5. In Stripe Dashboard / Workbench, create a webhook pointing to `https://your-domain.example/webhooks/stripe.php`.
-6. Subscribe at minimum to:
+2. Save the Stripe secret key, publishable key, webhook signing secret, and recurring `price_...` ID.
+3. Create a webhook for `https://your-domain.example/webhooks/stripe.php`.
+4. Subscribe at minimum to:
    - `checkout.session.completed`
    - `invoice.paid`
    - `invoice.payment_failed`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
 
-The app uses Stripe Hosted Checkout for upgrades and Stripe Billing Portal for subscription self-service.
+## Storage
 
-## Current Capabilities
+The project supports:
 
-- age gate with session lock
-- account registration and login
-- first registered user becomes `admin`
-- local uploads or Wasabi uploads
-- Wasabi private bucket delivery via signed URLs
-- multipart upload support for large Wasabi uploads
-- direct media URLs: `.mp4`, `.webm`, `.m3u8`
-- embed conversion from supported providers
-- clean listing posters and richer detail posters
-- free vs premium playback gating
-- Stripe Hosted Checkout upgrades
-- Stripe Billing Portal management
-- Stripe webhook sync for account tier updates
-- moderation status workflow
-- user role and suspension management
-- dedicated rules, terms, privacy, and cookies pages
-- editable global footer with useful and legal links
-- editable cookie notice banner on public pages
-- bulk actions and pagination in admin lists
-- audit activity filtering and CSV export
-- password reset by one-time token
-- authenticator-app MFA with backup codes
+- local uploads under `storage/uploads`
+- Wasabi object storage
+- external direct video URLs
+- external embed URLs for supported providers
 
-## Notes
+The active storage driver and Wasabi credentials can be managed from `Admin > Storage`.
 
-- If MySQL is offline, the public home page falls back to demo data.
-- For very large uploads, also raise `upload_max_filesize` and `post_max_size` in your PHP runtime or hosting panel.
-- Wasabi playback and upload should be tested with real bucket credentials before production use.
-- For Premium assets on Wasabi, the app now routes playback through `media.php` so Premium videos are not exposed as plain public object URLs.
-- In this starter, password reset links are shown on-screen because outbound email is not configured.
+## Security Notes
 
-## Tks for use
-## Stars, watches, PR's and issues are welcome, always focusing on spreading and improving the project!
+- `.env` and `storage/runtime` are ignored by Git and should stay private.
+- The repository includes an Apache `.htaccess` for blocking sensitive files. If you deploy with `nginx` or `IIS`, add equivalent rules at the server level.
+- The installer locks itself after a successful run. Remove the lock file manually only if you intentionally need to reinstall.
+- Premium local media is routed through `media.php` and access-checked server-side.
+- Password reset links are not shown publicly unless `VIDEW_DEBUG_EXPOSE_RESET_LINKS=1`.
+
+## Frontend Development
+
+You only need `npm` for local dependency maintenance.
+
+Commands:
+
+```bash
+npm install
+npm run check:js
+npm run sync:gui
+```
+
+Production hosting does not need `npm install` as long as `assets/vendor/gui` is present.
+
+## Open Source Notes
+
+- License: [MIT](LICENSE)
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security reporting: [SECURITY.md](SECURITY.md)
+
+The repository is prepared to stay public:
+
+- `.env`, uploaded media, runtime cache, archives, and `node_modules` stay ignored
+- `.env.example` contains placeholder values only
+- the runtime asset required by the frontend is committed in `assets/vendor/gui`
+
+## Validation
+
+Typical checks after changes:
+
+```bash
+php -l install.php
+php -l admin.php
+php -l index.php
+npm run check:js
+```

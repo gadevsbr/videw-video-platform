@@ -36,9 +36,15 @@ function asset(string $path): string
 
 function gui_runtime_tags(): string
 {
+    $guiRuntimeUrl = asset('assets/vendor/gui/index.js');
+
+    if (!is_file(ROOT_PATH . '/assets/vendor/gui/index.js')) {
+        $guiRuntimeUrl = asset('node_modules/@bragamateus/gui/gui/index.js');
+    }
+
     $importMap = json_encode([
         'imports' => [
-            '@bragamateus/gui' => asset('node_modules/@bragamateus/gui/gui/index.js'),
+            '@bragamateus/gui' => $guiRuntimeUrl,
         ],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
