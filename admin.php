@@ -110,6 +110,7 @@ if (is_post_request()) {
                 'app_description' => trim((string) ($_POST['app_description'] ?? (string) config('app.description'))),
                 'brand_kicker' => trim((string) ($_POST['brand_kicker'] ?? brand_kicker())),
                 'brand_title' => trim((string) ($_POST['brand_title'] ?? brand_title())),
+                'age_gate_enabled' => isset($_POST['age_gate_enabled']) ? '1' : '0',
                 'base_url' => trim((string) ($_POST['base_url'] ?? base_url())),
                 'support_email' => trim((string) ($_POST['support_email'] ?? (string) config('app.support_email'))),
                 'exit_url' => trim((string) ($_POST['exit_url'] ?? (string) config('app.exit_url'))),
@@ -464,6 +465,7 @@ $appSettings = [
     'app_description' => (string) config('app.description'),
     'brand_kicker' => brand_kicker(),
     'brand_title' => brand_title(),
+    'age_gate_enabled' => age_gate_enabled(),
     'base_url' => base_url(),
     'support_email' => (string) config('app.support_email'),
     'exit_url' => (string) config('app.exit_url'),
@@ -682,7 +684,9 @@ $currentScreen = $screenMeta[$screen];
     <header class="site-header">
         <a class="brandmark" href="<?= e(base_url()); ?>">
             <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
+            <?php if (brand_title() !== ''): ?>
+                <span class="brandmark__title"><?= e(brand_title()); ?></span>
+            <?php endif; ?>
         </a>
         <nav class="site-nav">
             <a href="<?= e(base_url()); ?>">Home</a>
@@ -1829,7 +1833,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Branding</h3>
-                                <p>Control the visible product name and short lockup.</p>
+                                <p>Control the visible product name and short lockup. Leave Brand title empty to hide the yellow tag.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -1849,6 +1853,17 @@ $currentScreen = $screenMeta[$screen];
                                     <input type="text" name="brand_title" value="<?= e($appSettings['brand_title']); ?>">
                                 </label>
                             </div>
+                        </section>
+                        <section class="admin-form-section">
+                            <div class="admin-form-section__header">
+                                <h3>Entry notice</h3>
+                                <p>Choose whether the 18+ entry warning should appear before visitors continue into the site.</p>
+                            </div>
+                            <label class="checkbox-line">
+                                <input type="checkbox" name="age_gate_enabled" value="1" <?= !empty($appSettings['age_gate_enabled']) ? 'checked' : ''; ?>>
+                                <span>Show the 18+ entry notice on public pages</span>
+                            </label>
+                            <p class="form-note">When this is off, the modal warning is hidden. When this is on, visitors will see the entry notice again until they confirm.</p>
                         </section>
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
@@ -1891,6 +1906,11 @@ $currentScreen = $screenMeta[$screen];
                         <article class="compliance-card">
                             <h3>Private site settings</h3>
                             <p>These details are saved privately for this site and are not shown on the public pages.</p>
+                        </article>
+                        <article class="compliance-card">
+                            <h3>18+ notice</h3>
+                            <p><strong>Status:</strong> <?= !empty($appSettings['age_gate_enabled']) ? 'Enabled' : 'Disabled'; ?></p>
+                            <p>The public entry warning follows this setting.</p>
                         </article>
                         <article class="compliance-card">
                             <h3>Head script status</h3>

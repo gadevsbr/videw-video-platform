@@ -206,7 +206,8 @@ function CatalogApp() {
 }
 
 function AgeGateApp() {
-  const visible = signal(!bootstrap.ageVerified);
+  const settings = bootstrap.ageGate ?? {};
+  const visible = signal(Boolean(settings.enabled) && !bootstrap.ageVerified);
   const status = signal("");
 
   effect(() => {
@@ -309,7 +310,7 @@ function mountCatalog() {
 function mountAgeGate() {
   const target = document.querySelector("#age-gate-root");
 
-  if (target) {
+  if (target && bootstrap.ageGate?.enabled) {
     createApp(target, AgeGateApp);
   }
 }

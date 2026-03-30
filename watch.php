@@ -131,10 +131,12 @@ $user = current_user();
                             <strong><?= e($video['access_label']); ?></strong>
                         </div>
                     </div>
-                    <div class="notice-card">
-                        <strong>18+ notice</strong>
-                        <p>This page contains adult material and is only for viewers 18 or older.</p>
-                    </div>
+                    <?php if (age_gate_enabled()): ?>
+                        <div class="notice-card">
+                            <strong>18+ notice</strong>
+                            <p>This page contains adult material and is only for viewers 18 or older.</p>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($videoRequiresPremium): ?>
                         <div class="notice-card">
                             <strong>Plan required</strong>

@@ -163,12 +163,17 @@ function brand_kicker(): string
 
 function brand_title(): string
 {
-    return (string) config('app.brand_title', '18+');
+    return trim((string) config('app.brand_title', ''));
 }
 
 function brand_lockup(): string
 {
     return trim(brand_kicker() . ' ' . brand_title());
+}
+
+function age_gate_enabled(): bool
+{
+    return (bool) config('app.age_gate_enabled', false);
 }
 
 function public_head_markup(): string
@@ -626,7 +631,8 @@ function app_settings_to_env_values(array $settings): array
         'VIDEW_APP_NAME' => (string) ($settings['app_name'] ?? config('app.name', 'VIDEW 18+')),
         'VIDEW_APP_DESCRIPTION' => (string) ($settings['app_description'] ?? config('app.description', '')),
         'VIDEW_BRAND_KICKER' => (string) ($settings['brand_kicker'] ?? config('app.brand_kicker', 'VIDEW')),
-        'VIDEW_BRAND_TITLE' => (string) ($settings['brand_title'] ?? config('app.brand_title', '18+')),
+        'VIDEW_BRAND_TITLE' => (string) ($settings['brand_title'] ?? config('app.brand_title', '')),
+        'VIDEW_AGE_GATE_ENABLED' => (string) ($settings['age_gate_enabled'] ?? (age_gate_enabled() ? '1' : '0')),
         'VIDEW_BASE_URL' => (string) ($settings['base_url'] ?? config('app.base_url', '')),
         'VIDEW_SUPPORT_EMAIL' => (string) ($settings['support_email'] ?? config('app.support_email', '')),
         'VIDEW_EXIT_URL' => (string) ($settings['exit_url'] ?? config('app.exit_url', 'https://www.google.com')),
@@ -744,6 +750,9 @@ function default_bootstrap_payload(string $page, array $overrides = []): array
         'baseUrl' => base_url(),
         'exitUrl' => (string) config('app.exit_url'),
         'ageVerified' => is_age_verified(),
+        'ageGate' => [
+            'enabled' => $page !== 'admin' && age_gate_enabled(),
+        ],
         'videos' => [],
         'stats' => [],
         'categories' => [],

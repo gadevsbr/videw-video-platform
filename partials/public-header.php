@@ -20,7 +20,9 @@ $navigationItems = [
 <header class="site-header">
     <a class="brandmark" href="<?= e(base_url()); ?>">
         <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-        <span class="brandmark__title"><?= e(brand_title()); ?></span>
+        <?php if (brand_title() !== ''): ?>
+            <span class="brandmark__title"><?= e(brand_title()); ?></span>
+        <?php endif; ?>
     </a>
     <nav class="site-nav">
         <?php foreach ($navigationItems as $key => $item): ?>

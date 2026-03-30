@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2026-03-30
+
+### Added
+- Added an admin-controlled `18+ entry notice` toggle in `admin.php` so the public age gate can be enabled or disabled without code changes.
+- Added support for the `VIDEW_AGE_GATE_ENABLED` environment variable in `config/app.php`, `src/Support/helpers.php`, and `.env.example`.
+
+### Changed
+- Updated the public brand lockup so the yellow `Brand title` badge only appears when a value is actually configured in the admin settings.
+- Updated the public bootstrap payload and `assets/js/app.js` so the age gate modal only mounts when the admin setting is enabled.
+- Updated `watch.php` so the on-page `18+ notice` only appears when the age gate is enabled.
+
 ## [0.2.1] - 2026-03-29
 
 ### Added
