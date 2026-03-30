@@ -22,7 +22,7 @@ $user = $userRepository->findById($userId) ?? $sessionUser;
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'account_security')) {
-        flash('error', 'Security token expired. Try again.');
+        flash('error', copy_text('messages.common.security_token_expired', 'Security token expired. Try again.'));
         redirect('account.php#security');
     }
 

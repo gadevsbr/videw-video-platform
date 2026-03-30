@@ -20,7 +20,7 @@ if ($checkoutState === 'success' && $checkoutSessionId !== '') {
     $result = $billing->syncSuccessfulCheckout($checkoutSessionId, $user ? (int) ($user['id'] ?? 0) : null);
 
     if ($result['success']) {
-        flash('success', $user ? $result['message'] : 'Your payment is confirmed. Sign in to refresh your account.');
+        flash('success', $user ? $result['message'] : copy_text('messages.billing.checkout_success_guest', 'Your payment is confirmed. Sign in to refresh your account.'));
     } else {
         flash('error', $result['message']);
     }
@@ -29,7 +29,7 @@ if ($checkoutState === 'success' && $checkoutSessionId !== '') {
 }
 
 if ($checkoutState === 'cancel') {
-    flash('error', 'Checkout was canceled before payment was completed.');
+    flash('error', copy_text('messages.billing.checkout_canceled', 'Checkout was canceled before payment was completed.'));
     redirect('premium.php');
 }
 

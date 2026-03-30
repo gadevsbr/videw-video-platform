@@ -1,21 +1,49 @@
-MIT License
+VIDEW Source Available Non-Commercial License 1.0
 
 Copyright (c) 2026 VIDEW contributors
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is granted, free of charge, to any person obtaining a copy of this
+software and associated documentation files (the "Software") to use, copy,
+modify, and distribute the Software for personal, educational, evaluation,
+testing, and other non-commercial purposes only, subject to the conditions
+below.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. You must keep this license text, copyright notice, and any existing
+   attribution notices in all copies or substantial portions of the Software.
+
+2. You may not use the Software, or any modified or derivative version of the
+   Software, for any commercial purpose without prior written authorization
+   from the copyright holder or an authorized licensor.
+
+3. For the purposes of this license, "commercial purpose" includes, without
+   limitation:
+   a. selling, licensing, sublicensing, or otherwise monetizing the Software;
+   b. offering the Software, or a service built on it, as a paid or
+      revenue-generating hosted service, SaaS product, subscription, or
+      platform;
+   c. using the Software in paid client work, agency work, white-label work,
+      consulting engagements, or contracted deliverables;
+   d. deploying or using the Software within a commercial organization when the
+      Software supports revenue generation, customer delivery, paid content,
+      paid access, advertising, subscriptions, or other business operations.
+
+4. This license does not grant any rights to use the names, logos, trademarks,
+   or branding of the copyright holder or project maintainers, except as
+   necessary for reasonable attribution.
+
+5. If you want to use the Software commercially, you must obtain prior written
+   authorization from the copyright holder or repository maintainer before
+   doing so. Commercial licensing and authorization requests should be sent to
+   gadevs2020@gmail.com.
+
+6. This license is not an OSI-approved open source license. The Software is
+   source-available, but commercial use is restricted unless separately
+   authorized in writing.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,
+OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.

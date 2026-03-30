@@ -11,7 +11,7 @@ if (is_authenticated()) {
 }
 
 if (empty($_SESSION['pending_mfa_user_id'])) {
-    flash('error', 'Sign in again to continue.');
+    flash('error', copy_text('messages.auth.mfa_page_sign_in_again', 'Sign in again to continue.'));
     redirect('login.php');
 }
 
@@ -19,7 +19,7 @@ $flashError = flash('error');
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'mfa_challenge')) {
-        $flashError = 'Security token expired. Try again.';
+        $flashError = copy_text('messages.common.security_token_expired', 'Security token expired. Try again.');
     } else {
         $auth = new AuthService();
         $result = $auth->completePendingMfa((string) ($_POST['code'] ?? ''));

@@ -10,14 +10,14 @@ use App\Services\BillingService;
 ensure_logged_in();
 
 if (!is_post_request() || !verify_csrf($_POST['_csrf'] ?? null, 'billing_portal')) {
-    flash('error', 'Security token expired. Try again.');
+    flash('error', copy_text('messages.common.security_token_expired', 'Security token expired. Try again.'));
     redirect('account.php#subscription');
 }
 
 $user = current_user(true);
 
 if (!$user) {
-    flash('error', 'Sign in to continue.');
+    flash('error', copy_text('messages.common.sign_in_required', 'Sign in to continue.'));
     redirect('login.php');
 }
 

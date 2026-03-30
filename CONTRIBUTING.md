@@ -2,6 +2,8 @@
 
 Thanks for considering a contribution to `VIDEW`.
 
+`VIDEW` is distributed under a source-available non-commercial license. By submitting a contribution, you agree that your contribution may be distributed under the same license.
+
 ## Before You Start
 
 - Use the issue tracker for bugs, regressions, and feature discussions.

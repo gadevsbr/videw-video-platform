@@ -1,8 +1,10 @@
 # VIDEW
 
-Open-source video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
+Source-available video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
 
 `VIDEW` is designed to be flexible: you can run it as a general video platform or enable optional access controls such as an `age gate` when your project requires it.
+
+Commercial use is not included by default. If you want to use `VIDEW` in a paid product, customer project, hosted service, monetized site, or other commercial environment, you need prior authorization from the project maintainer. Contact: `gadevs2020@gmail.com`. See [LICENSE](LICENSE).
 
 `VIDEW` includes:
 
@@ -166,11 +168,14 @@ npm run sync:gui
 
 Production hosting does not need `npm install` as long as `assets/vendor/gui` is present.
 
-## Open Source Notes
+## Licensing
 
-- License: [MIT](LICENSE)
+- License: [VIDEW Source Available Non-Commercial License 1.0](LICENSE)
+- Commercial licensing contact: `gadevs2020@gmail.com`
 - Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security reporting: [SECURITY.md](SECURITY.md)
+
+Because commercial use is restricted, `VIDEW` is source-available rather than OSI open source.
 
 The repository is prepared to stay public:
 

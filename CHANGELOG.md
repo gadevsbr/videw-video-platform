@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.4] - 2026-03-30
+
+### Added
+- Added a dedicated admin-editable message layer for public auth, MFA, password reset, and Premium billing feedback inside the `Copy` screen.
+- Added an explicit licensing and security contact email (`gadevs2020@gmail.com`) to the public project documentation.
+
+### Changed
+- Moved the remaining public-facing auth and billing success/error messages into the centralized copy system so they can be managed from one place.
+- Replaced the previous MIT license with the `VIDEW Source Available Non-Commercial License 1.0`.
+- Updated the README, package metadata, and contribution/security docs to position `VIDEW` as source-available rather than OSI open source.
+
 ## [0.2.3] - 2026-03-30
 
 ### Added

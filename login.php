@@ -12,7 +12,7 @@ if (is_authenticated()) {
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'login')) {
-        flash('error', 'Security token expired. Try again.');
+        flash('error', copy_text('messages.common.security_token_expired', 'Security token expired. Try again.'));
         redirect('login.php');
     }
 
@@ -63,11 +63,11 @@ $flashError = flash('error');
             <form method="post" class="auth-form">
                 <?= csrf_input('login'); ?>
                 <label>
-                    <span>Email</span>
+                    <span><?= e(copy_text('auth.login.email', 'Email')); ?></span>
                     <input type="email" name="email" value="<?= e(old('email')); ?>" required>
                 </label>
                 <label>
-                    <span>Password</span>
+                    <span><?= e(copy_text('auth.login.password', 'Password')); ?></span>
                     <input type="password" name="password" required>
                 </label>
                 <button class="button" type="submit"><?= e(copy_text('auth.login.submit', 'Sign in')); ?></button>

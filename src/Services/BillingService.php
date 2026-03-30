@@ -60,11 +60,11 @@ final class BillingService
     public function checkoutUrl(array $user): string
     {
         if (!$this->isConfigured()) {
-            throw new RuntimeException('Premium access is not available right now.');
+            throw new RuntimeException($this->message('premium_unavailable', 'Premium access is not available right now.'));
         }
 
         if (user_has_premium_access($user)) {
-            throw new RuntimeException('This account already has Premium access.');
+            throw new RuntimeException($this->message('already_premium', 'This account already has Premium access.'));
         }
 
         $params = [
@@ -99,7 +99,7 @@ final class BillingService
         $url = trim((string) ($session['url'] ?? ''));
 
         if ($url === '') {
-            throw new RuntimeException('We could not start checkout right now.');
+            throw new RuntimeException($this->message('checkout_start_failed', 'We could not start checkout right now.'));
         }
 
         return $url;
@@ -108,7 +108,7 @@ final class BillingService
     public function billingPortalUrl(array $user): string
     {
         if (trim((string) ($user['stripe_customer_id'] ?? '')) === '') {
-            throw new RuntimeException('This account does not have plan management available yet.');
+            throw new RuntimeException($this->message('portal_unavailable', 'This account does not have plan management available yet.'));
         }
 
         $session = $this->client()->createBillingPortalSession([
@@ -118,7 +118,7 @@ final class BillingService
         $url = trim((string) ($session['url'] ?? ''));
 
         if ($url === '') {
-            throw new RuntimeException('We could not open plan management right now.');
+            throw new RuntimeException($this->message('portal_open_failed', 'We could not open plan management right now.'));
         }
 
         return $url;
@@ -130,7 +130,7 @@ final class BillingService
     public function syncSuccessfulCheckout(string $sessionId, ?int $expectedUserId = null): array
     {
         if (trim($sessionId) === '') {
-            return ['success' => false, 'message' => 'We could not confirm your payment.'];
+            return ['success' => false, 'message' => $this->message('checkout_confirm_failed', 'We could not confirm your payment.')];
         }
 
         try {
@@ -138,7 +138,7 @@ final class BillingService
             $resolvedUserId = (int) ($session['client_reference_id'] ?? $session['metadata']['user_id'] ?? 0);
 
             if ($expectedUserId !== null && $expectedUserId > 0 && $resolvedUserId > 0 && $resolvedUserId !== $expectedUserId) {
-                throw new RuntimeException('This payment confirmation does not match your account.');
+                throw new RuntimeException($this->message('checkout_account_mismatch', 'This payment confirmation does not match your account.'));
             }
 
             if (!empty($session['subscription']) && is_array($session['subscription'])) {
@@ -148,7 +148,7 @@ final class BillingService
                 $this->syncSubscriptionPayload($subscription, $resolvedUserId > 0 ? $resolvedUserId : $expectedUserId);
             }
 
-            return ['success' => true, 'message' => 'Your Premium access is now active.'];
+            return ['success' => true, 'message' => $this->message('checkout_success', 'Your Premium access is now active.')];
         } catch (RuntimeException $exception) {
             return ['success' => false, 'message' => $exception->getMessage()];
         }
@@ -275,6 +275,11 @@ final class BillingService
     private function client(): StripeApiClient
     {
         return new StripeApiClient((string) config('billing.stripe_secret_key', ''));
+    }
+
+    private function message(string $key, string $default): string
+    {
+        return \copy_text('messages.billing.' . $key, $default);
     }
 
     /**

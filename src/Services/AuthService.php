@@ -54,7 +54,7 @@ final class AuthService
         if (!Database::connection()) {
             return [
                 'success' => false,
-                'message' => 'Sign in is temporarily unavailable. Please try again later.',
+                'message' => $this->message('login_unavailable', 'Sign in is temporarily unavailable. Please try again later.'),
             ];
         }
 
@@ -66,14 +66,14 @@ final class AuthService
 
             return [
                 'success' => false,
-                'message' => 'Invalid email or password.',
+                'message' => $this->message('invalid_credentials', 'Invalid email or password.'),
             ];
         }
 
         if (($user['status'] ?? 'active') !== 'active') {
             return [
                 'success' => false,
-                'message' => 'This account is suspended.',
+                'message' => $this->message('account_suspended', 'This account is suspended.'),
             ];
         }
 
@@ -83,7 +83,7 @@ final class AuthService
 
             return [
                 'success' => true,
-                'message' => 'Enter your 2FA code to continue.',
+                'message' => $this->message('mfa_required', 'Enter your 2FA code to continue.'),
                 'requires_mfa' => true,
             ];
         }
@@ -94,7 +94,7 @@ final class AuthService
 
         return [
             'success' => true,
-            'message' => 'Signed in successfully.',
+            'message' => $this->message('login_success', 'Signed in successfully.'),
         ];
     }
 
@@ -112,37 +112,37 @@ final class AuthService
         $acceptedTerms = ($input['adult_terms'] ?? '') === '1';
 
         if ($displayName === '' || $email === '' || $password === '' || $birthDate === '') {
-            return ['success' => false, 'message' => 'Fill in all required fields.'];
+            return ['success' => false, 'message' => $this->message('required_fields', 'Fill in all required fields.')];
         }
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return ['success' => false, 'message' => 'Enter a valid email address.'];
+            return ['success' => false, 'message' => $this->message('invalid_email', 'Enter a valid email address.')];
         }
 
         if (strlen($password) < 8) {
-            return ['success' => false, 'message' => 'Password must be at least 8 characters long.'];
+            return ['success' => false, 'message' => $this->message('password_too_short', 'Password must be at least 8 characters long.')];
         }
 
         if ($password !== $passwordConfirmation) {
-            return ['success' => false, 'message' => 'Password confirmation does not match.'];
+            return ['success' => false, 'message' => $this->message('password_confirmation_mismatch', 'Password confirmation does not match.')];
         }
 
         if (!$acceptedTerms) {
-            return ['success' => false, 'message' => 'You must confirm you are 18+ and accept the adult policy.'];
+            return ['success' => false, 'message' => $this->message('age_confirmation_required', 'You must confirm that you meet the site age requirement and accept the site policy.')];
         }
 
         try {
             $birthDateObject = new DateTimeImmutable($birthDate);
         } catch (Throwable) {
-            return ['success' => false, 'message' => 'Invalid birth date.'];
+            return ['success' => false, 'message' => $this->message('invalid_birth_date', 'Invalid birth date.')];
         }
 
         if (years_between($birthDateObject) < 18) {
-            return ['success' => false, 'message' => 'Registration is available only to users 18 or older.'];
+            return ['success' => false, 'message' => $this->message('registration_age_restricted', 'Registration is available only to users who meet the site age requirement.')];
         }
 
         if ($this->users->findByEmail($email)) {
-            return ['success' => false, 'message' => 'An account with this email already exists.'];
+            return ['success' => false, 'message' => $this->message('email_exists', 'An account with this email already exists.')];
         }
 
         $role = $this->users->hasAdmin() ? 'member' : 'admin';
@@ -167,8 +167,8 @@ final class AuthService
         return [
             'success' => true,
             'message' => $role === 'admin'
-                ? 'Account created. This first account has admin access.'
-                : 'Account created successfully.',
+                ? $this->message('register_success_admin', 'Account created. This first account has admin access.')
+                : $this->message('register_success_member', 'Account created successfully.'),
         ];
     }
 
@@ -198,7 +198,7 @@ final class AuthService
         if (!$user) {
             return [
                 'success' => true,
-                'message' => 'If the account exists, a reset link has been generated.',
+                'message' => $this->message('reset_requested', 'If the account exists, a reset link has been generated.'),
             ];
         }
 
@@ -218,11 +218,11 @@ final class AuthService
 
         $response = [
             'success' => true,
-            'message' => 'If the account exists, a reset link has been generated.',
+            'message' => $this->message('reset_requested', 'If the account exists, a reset link has been generated.'),
         ];
 
         if ((bool) config('security.expose_reset_links', false)) {
-            $response['message'] = 'Reset link is ready.';
+            $response['message'] = $this->message('reset_preview_ready', 'Reset link is ready.');
             $response['reset_url'] = base_url('reset-password.php?token=' . urlencode($token));
         }
 
@@ -237,21 +237,21 @@ final class AuthService
         $token = trim($token);
 
         if ($token === '') {
-            return ['success' => false, 'message' => 'Invalid reset token.'];
+            return ['success' => false, 'message' => $this->message('reset_invalid_token', 'Invalid reset token.')];
         }
 
         if (strlen($password) < 8) {
-            return ['success' => false, 'message' => 'Password must be at least 8 characters long.'];
+            return ['success' => false, 'message' => $this->message('password_too_short', 'Password must be at least 8 characters long.')];
         }
 
         if ($password !== $passwordConfirmation) {
-            return ['success' => false, 'message' => 'Password confirmation does not match.'];
+            return ['success' => false, 'message' => $this->message('password_confirmation_mismatch', 'Password confirmation does not match.')];
         }
 
         $reset = $this->passwordResets->findActive(hash('sha256', $token));
 
         if (!$reset) {
-            return ['success' => false, 'message' => 'Reset link expired or already used.'];
+            return ['success' => false, 'message' => $this->message('reset_expired', 'Reset link expired or already used.')];
         }
 
         try {
@@ -264,7 +264,7 @@ final class AuthService
 
         return [
             'success' => true,
-            'message' => 'Password updated. You can sign in now.',
+            'message' => $this->message('reset_success', 'Password updated. You can sign in now.'),
         ];
     }
 
@@ -276,7 +276,7 @@ final class AuthService
         $user = $this->pendingMfaUser();
 
         if (!$user) {
-            return ['success' => false, 'message' => 'Your MFA session expired. Sign in again.'];
+            return ['success' => false, 'message' => $this->message('mfa_session_expired', 'Your MFA session expired. Sign in again.')];
         }
 
         $ipKey = $this->mfaIpKey();
@@ -297,7 +297,7 @@ final class AuthService
         if (!$verification['valid']) {
             $this->rateLimiter->hit($ipKey, self::MFA_RATE_LIMIT_WINDOW);
             $this->rateLimiter->hit($userKey, self::MFA_RATE_LIMIT_WINDOW);
-            return ['success' => false, 'message' => 'Invalid 2FA code.'];
+            return ['success' => false, 'message' => $this->message('mfa_invalid_code', 'Invalid 2FA code.')];
         }
 
         try {
@@ -317,8 +317,8 @@ final class AuthService
         return [
             'success' => true,
             'message' => $verification['backup_used']
-                ? 'Backup code accepted. You are now signed in.'
-                : '2FA verified. You are now signed in.',
+                ? $this->message('mfa_backup_success', 'Backup code accepted. You are now signed in.')
+                : $this->message('mfa_success', '2FA verified. You are now signed in.'),
         ];
     }
 
@@ -361,11 +361,11 @@ final class AuthService
         $user = $this->users->findById($userId);
 
         if (!$user) {
-            return ['success' => false, 'message' => 'Account not found.'];
+            return ['success' => false, 'message' => $this->message('account_not_found', 'Account not found.')];
         }
 
         if ((int) ($user['mfa_enabled'] ?? 0) === 1) {
-            return ['success' => false, 'message' => '2FA is already enabled.'];
+            return ['success' => false, 'message' => $this->message('mfa_already_enabled', '2FA is already enabled.')];
         }
 
         $secret = $this->twoFactor->generateSecret();
@@ -374,7 +374,7 @@ final class AuthService
 
         return [
             'success' => true,
-            'message' => '2FA setup started. Add the key to your authenticator app and confirm with a code.',
+            'message' => $this->message('mfa_setup_started', '2FA setup started. Add the key to your authenticator app and confirm with a code.'),
             'setup' => [
                 'secret' => $secret,
                 'otpauth_uri' => $this->twoFactor->otpauthUri((string) config('app.name'), (string) ($user['email'] ?? 'account'), $secret),
@@ -390,11 +390,11 @@ final class AuthService
         $setup = $this->currentMfaSetup($userId);
 
         if (!$setup) {
-            return ['success' => false, 'message' => 'Start the 2FA setup first.'];
+            return ['success' => false, 'message' => $this->message('mfa_start_first', 'Start the 2FA setup first.')];
         }
 
         if (!$this->twoFactor->verifyCode($setup['secret'], $code)) {
-            return ['success' => false, 'message' => 'Invalid authenticator code.'];
+            return ['success' => false, 'message' => $this->message('mfa_invalid_authenticator_code', 'Invalid authenticator code.')];
         }
 
         $backupCodes = $this->twoFactor->generateBackupCodes();
@@ -414,7 +414,7 @@ final class AuthService
 
         return [
             'success' => true,
-            'message' => '2FA enabled. Save the backup codes now.',
+            'message' => $this->message('mfa_enabled_success', '2FA enabled. Save the backup codes now.'),
             'backup_codes' => $backupCodes,
         ];
     }
@@ -427,13 +427,13 @@ final class AuthService
         $user = $this->users->findById($userId);
 
         if (!$user || (int) ($user['mfa_enabled'] ?? 0) !== 1) {
-            return ['success' => false, 'message' => '2FA is not enabled for this account.'];
+            return ['success' => false, 'message' => $this->message('mfa_not_enabled', '2FA is not enabled for this account.')];
         }
 
         $verification = $this->verifyMfaCode($user, $code, true);
 
         if (!$verification['valid']) {
-            return ['success' => false, 'message' => 'Invalid 2FA code.'];
+            return ['success' => false, 'message' => $this->message('mfa_invalid_code', 'Invalid 2FA code.')];
         }
 
         try {
@@ -451,7 +451,7 @@ final class AuthService
 
         return [
             'success' => true,
-            'message' => '2FA disabled.',
+            'message' => $this->message('mfa_disabled_success', '2FA disabled.'),
         ];
     }
 
@@ -619,6 +619,19 @@ final class AuthService
     {
         $minutes = max(1, (int) ceil($seconds / 60));
 
-        return 'Too many attempts. Try again in about ' . $minutes . ' minute' . ($minutes === 1 ? '' : 's') . '.';
+        if ($minutes === 1) {
+            return $this->message('throttle_one', 'Too many attempts. Try again in about 1 minute.');
+        }
+
+        return str_replace(
+            '{minutes}',
+            (string) $minutes,
+            $this->message('throttle_many', 'Too many attempts. Try again in about {minutes} minutes.')
+        );
+    }
+
+    private function message(string $key, string $default): string
+    {
+        return \copy_text('messages.auth.' . $key, $default);
     }
 }

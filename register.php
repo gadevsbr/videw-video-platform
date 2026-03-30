@@ -12,7 +12,7 @@ if (is_authenticated()) {
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'register')) {
-        flash('error', 'Security token expired. Try again.');
+        flash('error', copy_text('messages.common.security_token_expired', 'Security token expired. Try again.'));
         redirect('register.php');
     }
 

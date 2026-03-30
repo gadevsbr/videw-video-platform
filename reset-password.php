@@ -16,7 +16,7 @@ $flashSuccess = null;
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'reset_password')) {
-        $flashError = 'Security token expired. Try again.';
+        $flashError = copy_text('messages.common.security_token_expired', 'Security token expired. Try again.');
     } else {
         $auth = new AuthService();
         $result = $auth->resetPassword(

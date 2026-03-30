@@ -17,7 +17,7 @@ $showResetLink = (bool) config('security.expose_reset_links', false);
 
 if (is_post_request()) {
     if (!verify_csrf($_POST['_csrf'] ?? null, 'forgot_password')) {
-        $flashError = 'Security token expired. Try again.';
+        $flashError = copy_text('messages.common.security_token_expired', 'Security token expired. Try again.');
     } else {
         $email = trim((string) ($_POST['email'] ?? ''));
         remember_input(['email' => $email]);
