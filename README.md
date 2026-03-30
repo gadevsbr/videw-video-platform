@@ -1,6 +1,8 @@
-# VIDEW 18+
+# VIDEW
 
-Open-source adult-only video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
+Open-source video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
+
+`VIDEW` is designed to be flexible: you can run it as a general video platform or enable optional access controls such as an `age gate` when your project requires it.
 
 `VIDEW` includes:
 
@@ -8,7 +10,7 @@ Open-source adult-only video platform starter built with `PHP`, `MySQL`, `CSS`, 
 - Stripe subscriptions with Hosted Checkout and Billing Portal
 - local uploads, Wasabi uploads, and external embeds
 - account registration, password reset, and TOTP MFA
-- legal pages, cookie notice, and editable footer content
+- optional age gate, legal pages, cookie notice, and editable footer content
 - a multi-screen admin suite for publishing, moderation, billing, and settings
 - a lightweight web installer for shared hosting and small VPS deployments
 
