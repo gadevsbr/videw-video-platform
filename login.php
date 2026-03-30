@@ -44,17 +44,17 @@ $flashError = flash('error');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign in | <?= e(config('app.name')); ?></title>
+    <title><?= e(copy_text('auth.login.title', 'Sign in')); ?> | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="auth-body <?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class('auth-body')); ?>">
     <main class="auth-layout">
         <section class="auth-intro">
-            <span class="eyebrow">ADULT ACCESS</span>
-            <h1>Sign in</h1>
-            <p>Sign in to watch premium videos and manage your account.</p>
-            <a class="text-link" href="<?= e(base_url()); ?>">Back to home</a>
+            <span class="eyebrow"><?= e(copy_text('auth.login.eyebrow', 'ACCESS')); ?></span>
+            <h1><?= e(copy_text('auth.login.heading', 'Sign in')); ?></h1>
+            <p><?= e(copy_text('auth.login.text', 'Sign in to watch premium videos and manage your account.')); ?></p>
+            <a class="text-link" href="<?= e(base_url()); ?>"><?= e(copy_text('common.back_to_home', 'Back to home')); ?></a>
         </section>
         <section class="auth-card">
             <?php if ($flashError): ?>
@@ -70,9 +70,9 @@ $flashError = flash('error');
                     <span>Password</span>
                     <input type="password" name="password" required>
                 </label>
-                <button class="button" type="submit">Sign in</button>
-                <p class="form-note"><a class="text-link" href="<?= e(base_url('forgot-password.php')); ?>">Forgot your password?</a></p>
-                <p class="form-note">No account yet? <a class="text-link" href="<?= e(base_url('register.php')); ?>">Create one</a></p>
+                <button class="button" type="submit"><?= e(copy_text('auth.login.submit', 'Sign in')); ?></button>
+                <p class="form-note"><a class="text-link" href="<?= e(base_url('forgot-password.php')); ?>"><?= e(copy_text('auth.login.forgot', 'Forgot your password?')); ?></a></p>
+                <p class="form-note"><?= e(copy_text('auth.login.register_prompt', 'No account yet?')); ?> <a class="text-link" href="<?= e(base_url('register.php')); ?>"><?= e(copy_text('auth.login.register_link', 'Create one')); ?></a></p>
             </form>
         </section>
     </main>

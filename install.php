@@ -16,7 +16,7 @@ load_env_file(ROOT_PATH . '/.env.local');
 
 $checks = installer_checks($envPath, $schemaPath, $demoSeedPath);
 $formData = [
-    'app_name' => trim((string) env_value('VIDEW_APP_NAME', 'VIDEW 18+')),
+    'app_name' => trim((string) env_value('VIDEW_APP_NAME', 'VIDEW')),
     'base_url' => trim((string) env_value('VIDEW_BASE_URL', installer_detect_base_url())),
     'support_email' => trim((string) env_value('VIDEW_SUPPORT_EMAIL', '')),
     'timezone' => trim((string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo')),
@@ -358,7 +358,7 @@ $title = 'VIDEW Installer';
                         <div class="grid">
                             <label>
                                 <span>App name</span>
-                                <input type="text" name="app_name" value="<?= h($formData['app_name']); ?>" placeholder="VIDEW 18+" <?= $installed ? 'disabled' : ''; ?>>
+                                <input type="text" name="app_name" value="<?= h($formData['app_name']); ?>" placeholder="VIDEW" <?= $installed ? 'disabled' : ''; ?>>
                             </label>
                             <label>
                                 <span>Base URL</span>

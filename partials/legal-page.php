@@ -19,10 +19,10 @@ $user = current_user();
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class()); ?>">
     <?php
     $publicNavActive = 'support';
-    $publicBarItems = ['Adults only 18+', 'Policies and support', 'Public information'];
+    $publicBarItems = copy_items('header.bar.legal');
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
@@ -33,8 +33,8 @@ $user = current_user();
                 <h1><?= e($legalTitle); ?></h1>
                 <p><?= e($legalIntro); ?></p>
                 <div class="hero__actions">
-                    <a class="button" href="<?= e(base_url('support.php')); ?>">Open support</a>
-                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
+                    <a class="button" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('common.open_support', 'Open support')); ?></a>
+                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('common.browse_videos', 'Browse videos')); ?></a>
                 </div>
             </div>
             <aside class="hero__aside legal-hero__aside">

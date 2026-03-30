@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.3] - 2026-03-30
+
+### Added
+- Added a dedicated `Copy` screen in `admin.php` so public-facing text can be edited from one place.
+- Added a centralized public copy system in `config/copy.php` with environment-backed overrides through `VIDEW_COPY_OVERRIDES_B64`.
+- Added support for editing homepage, browse, plans, support, watch, account, auth, and age-gate copy without code changes.
+
+### Changed
+- Updated major public pages and shared templates to read text from the centralized copy layer.
+- Updated the project defaults in `.env.example`, `config/app.php`, `install.php`, and `package.json` to position `VIDEW` as a general video platform with optional age gate support.
+- Updated the README to reflect the broader positioning and document the new admin copy screen.
+
+### Fixed
+- Fixed the admin `copy` route so `admin.php?screen=copy` no longer falls back to the overview screen.
+
 ## [0.2.2] - 2026-03-30
 
 ### Added

@@ -22,7 +22,7 @@ $adminVideos = new AdminVideoService();
 $mediaAccess = new MediaAccessService();
 $billing = new BillingService();
 $dbReady = $settingsRepository->dbReady();
-$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'users', 'settings', 'legal', 'activity'];
+$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'users', 'settings', 'copy', 'legal', 'activity'];
 $screen = (string) ($_GET['screen'] ?? 'overview');
 $screen = in_array($screen, $validScreens, true) ? $screen : 'overview';
 $screenUrl = static fn (string $target): string => base_url('admin.php?screen=' . urlencode($target));
@@ -129,6 +129,29 @@ if (is_post_request()) {
         }
 
         redirect('admin.php?screen=settings');
+    }
+
+    if ($action === 'save_copy_settings') {
+        try {
+            $submittedCopy = is_array($_POST['copy'] ?? null) ? $_POST['copy'] : [];
+            $copySettings = current_copy_settings();
+
+            foreach (array_keys($copySettings) as $copyKey) {
+                $formKey = str_replace('.', '__', (string) $copyKey);
+                $copySettings[(string) $copyKey] = trim((string) ($submittedCopy[$formKey] ?? $copySettings[(string) $copyKey]));
+            }
+
+            write_env_file_values(ROOT_PATH . '/.env', copy_settings_to_env_values($copySettings));
+            $auditLogs->record($actorId ?: null, 'copy.saved', 'settings', null, 'Updated public text settings.', [
+                'sections' => count(copy_admin_sections()),
+                'fields' => count($copySettings),
+            ]);
+            flash('success', 'Public text settings saved.');
+        } catch (RuntimeException $exception) {
+            flash('error', $exception->getMessage());
+        }
+
+        redirect('admin.php?screen=copy');
     }
 
     if ($action === 'save_legal_settings') {
@@ -472,6 +495,31 @@ $appSettings = [
     'public_head_scripts' => (string) config('app.public_head_scripts'),
     'timezone' => (string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo'),
 ];
+$copySections = copy_admin_sections();
+$copySettings = current_copy_settings();
+$copyHandledKeys = [];
+
+foreach ($copySections as $copySection) {
+    foreach ($copySection['fields'] as $field) {
+        $copyHandledKeys[] = (string) $field['key'];
+    }
+}
+
+$copyExtraFields = [];
+
+foreach ($copySettings as $copyKey => $copyValue) {
+    if (in_array((string) $copyKey, $copyHandledKeys, true)) {
+        continue;
+    }
+
+    $copyExtraFields[] = [
+        'key' => (string) $copyKey,
+        'label' => ucwords(str_replace(['.', '_'], [' ', ' '], (string) $copyKey)),
+        'type' => strlen((string) $copyValue) > 100 ? 'textarea' : 'text',
+        'rows' => 4,
+    ];
+}
+
 $billingSettings = [
     'stripe_secret_key' => (string) config('billing.stripe_secret_key'),
     'stripe_publishable_key' => (string) config('billing.stripe_publishable_key'),
@@ -628,7 +676,14 @@ $screenMeta = [
         'eyebrow' => 'SETTINGS',
         'title' => 'General app settings.',
         'copy' => 'Update the public name, support details, links, and timezone.',
-        'primary' => ['label' => 'Open storage', 'href' => $screenUrl('storage')],
+        'primary' => ['label' => 'Open copy', 'href' => $screenUrl('copy')],
+        'secondary' => ['label' => 'Open legal', 'href' => $screenUrl('legal')],
+    ],
+    'copy' => [
+        'eyebrow' => 'COPY',
+        'title' => 'Public text and messaging.',
+        'copy' => 'Edit the visible public-facing text across the site from one screen.',
+        'primary' => ['label' => 'Open settings', 'href' => $screenUrl('settings')],
         'secondary' => ['label' => 'Open legal', 'href' => $screenUrl('legal')],
     ],
     'legal' => [
@@ -655,6 +710,7 @@ $screenLabels = [
     'moderation' => 'Moderation',
     'users' => 'Users',
     'settings' => 'Settings',
+    'copy' => 'Copy',
     'legal' => 'Legal',
     'activity' => 'Activity',
 ];
@@ -662,7 +718,7 @@ $adminNavGroups = [
     'Control center' => ['overview'],
     'Content' => ['publish', 'library', 'moderation'],
     'Members and revenue' => ['users', 'billing'],
-    'Site' => ['settings', 'legal'],
+    'Site' => ['settings', 'copy', 'legal'],
     'System' => ['storage', 'activity'],
 ];
 $currentScreen = $screenMeta[$screen];
@@ -675,7 +731,7 @@ $currentScreen = $screenMeta[$screen];
     <title>Admin | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class('', false)); ?>">
     <div class="legal-bar">
         <span>Admin area</span>
         <span>Library management</span>
@@ -1916,6 +1972,77 @@ $currentScreen = $screenMeta[$screen];
                             <h3>Head script status</h3>
                             <p><strong>Custom scripts:</strong> <?= trim($appSettings['public_head_scripts']) !== '' ? 'Enabled' : 'Disabled'; ?></p>
                             <p>Useful for Google Analytics, AdSense, verification tags, pixels, and other monetization or measurement platforms.</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($screen === 'copy'): ?>
+            <section class="catalog-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">COPY</span>
+                        <h2>Public text editor</h2>
+                    </div>
+                    <p>Edit the visible public copy used across the homepage, browse, plans, support, watch, account, auth, and age-gate flows.</p>
+                </div>
+                <div class="admin-screen-grid">
+                    <form method="post" class="admin-form-shell">
+                        <input type="hidden" name="action" value="save_copy_settings">
+                        <?= csrf_input('admin'); ?>
+                        <?php foreach ($copySections as $section): ?>
+                            <section class="admin-form-section">
+                                <div class="admin-form-section__header">
+                                    <h3><?= e((string) $section['title']); ?></h3>
+                                    <p><?= e((string) $section['description']); ?></p>
+                                </div>
+                                <div class="admin-fields admin-fields--two">
+                                    <?php foreach ($section['fields'] as $field): ?>
+                                        <?php $formKey = str_replace('.', '__', (string) $field['key']); ?>
+                                        <label>
+                                            <span><?= e((string) $field['label']); ?></span>
+                                            <?php if (($field['type'] ?? 'text') === 'textarea'): ?>
+                                                <textarea name="copy[<?= e($formKey); ?>]" rows="<?= e((string) ($field['rows'] ?? 3)); ?>"><?= e($copySettings[(string) $field['key']] ?? ''); ?></textarea>
+                                            <?php else: ?>
+                                                <input type="text" name="copy[<?= e($formKey); ?>]" value="<?= e($copySettings[(string) $field['key']] ?? ''); ?>">
+                                            <?php endif; ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </section>
+                        <?php endforeach; ?>
+                        <?php if ($copyExtraFields !== []): ?>
+                            <section class="admin-form-section">
+                                <div class="admin-form-section__header">
+                                    <h3>Additional copy keys</h3>
+                                    <p>These keys are generated automatically from the text system so every remaining public text stays editable too.</p>
+                                </div>
+                                <div class="admin-fields admin-fields--two">
+                                    <?php foreach ($copyExtraFields as $field): ?>
+                                        <?php $formKey = str_replace('.', '__', (string) $field['key']); ?>
+                                        <label>
+                                            <span><?= e((string) $field['label']); ?></span>
+                                            <?php if (($field['type'] ?? 'text') === 'textarea'): ?>
+                                                <textarea name="copy[<?= e($formKey); ?>]" rows="<?= e((string) ($field['rows'] ?? 4)); ?>"><?= e($copySettings[(string) $field['key']] ?? ''); ?></textarea>
+                                            <?php else: ?>
+                                                <input type="text" name="copy[<?= e($formKey); ?>]" value="<?= e($copySettings[(string) $field['key']] ?? ''); ?>">
+                                            <?php endif; ?>
+                                        </label>
+                                    <?php endforeach; ?>
+                                </div>
+                            </section>
+                        <?php endif; ?>
+                        <button class="button" type="submit">Save public text</button>
+                    </form>
+                    <div class="admin-sidebar-stack">
+                        <article class="compliance-card">
+                            <h3>What this covers</h3>
+                            <p>Use this screen for the public-facing product copy. Footer, legal pages, cookie notice, billing plan content, and branding still stay in their dedicated admin sections.</p>
+                        </article>
+                        <article class="compliance-card">
+                            <h3>How it saves</h3>
+                            <p>These values are written to the `.env` file as one centralized text payload, so the project stays easy to deploy on shared hosting and VPS setups.</p>
                         </article>
                     </div>
                 </div>

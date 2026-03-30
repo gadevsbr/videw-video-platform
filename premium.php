@@ -48,10 +48,10 @@ $flashSuccess = flash('success');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class()); ?>">
     <?php
     $publicNavActive = 'premium';
-    $publicBarItems = ['Adults only 18+', 'Secure checkout', 'Free and Premium access'];
+    $publicBarItems = copy_items('header.bar.premium');
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
@@ -65,47 +65,47 @@ $flashSuccess = flash('success');
     <main class="page-shell">
         <section class="hero legal-hero">
             <div class="hero__copy">
-                <span class="eyebrow">PREMIUM ACCESS</span>
+                <span class="eyebrow"><?= e(copy_text('premium.hero_eyebrow', 'PREMIUM ACCESS')); ?></span>
                 <h1><?= e($billing->planName()); ?></h1>
                 <p><?= e($billing->planCopy()); ?></p>
                 <div class="hero__actions">
                     <?php if ($billingConfigured && $user && !user_has_premium_access($user)): ?>
                         <form method="post" action="<?= e(base_url('start-premium-checkout.php')); ?>">
                             <?= csrf_input('billing_checkout'); ?>
-                            <button class="button" type="submit">Upgrade now</button>
+                            <button class="button" type="submit"><?= e(copy_text('premium.hero_primary_cta', 'Upgrade now')); ?></button>
                         </form>
                     <?php elseif ($billingConfigured && $user && (user_has_premium_access($user) || !empty($user['stripe_customer_id']))): ?>
                         <form method="post" action="<?= e(base_url('manage-billing.php')); ?>">
                             <?= csrf_input('billing_portal'); ?>
-                            <button class="button" type="submit">Manage plan</button>
+                            <button class="button" type="submit"><?= e(copy_text('premium.hero_manage_cta', 'Manage plan')); ?></button>
                         </form>
                     <?php elseif (!$user): ?>
-                        <a class="button" href="<?= e(base_url('register.php')); ?>">Create free account</a>
+                        <a class="button" href="<?= e(base_url('register.php')); ?>"><?= e(copy_text('premium.hero_guest_cta', 'Create free account')); ?></a>
                     <?php endif; ?>
-                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
+                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('premium.hero_secondary_cta', 'Browse videos')); ?></a>
                 </div>
                 <?php if (!$billingConfigured): ?>
                     <div class="notice-card">
-                        <strong>Premium access is not available right now</strong>
-                        <p><?php if (is_admin()): ?>Finish the payment setup in the admin panel to open Premium memberships.<?php else: ?>Please check back soon.<?php endif; ?></p>
+                        <strong><?= e(copy_text('premium.disabled_title', 'Premium access is not available right now')); ?></strong>
+                        <p><?php if (is_admin()): ?><?= e(copy_text('premium.disabled_text_admin', 'Finish the payment setup in the admin panel to open Premium memberships.')); ?><?php else: ?><?= e(copy_text('premium.disabled_text_public', 'Please check back soon.')); ?><?php endif; ?></p>
                         <?php if (is_admin()): ?>
-                            <a class="text-link" href="<?= e(base_url('admin.php?screen=billing')); ?>">Open payment settings</a>
+                            <a class="text-link" href="<?= e(base_url('admin.php?screen=billing')); ?>"><?= e(copy_text('premium.disabled_link', 'Open payment settings')); ?></a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
             </div>
             <aside class="hero__aside legal-hero__aside">
                 <article class="notice-card">
-                    <strong>Price</strong>
+                    <strong><?= e(copy_text('premium.bar_price_title', 'Price')); ?></strong>
                     <p><?= e($billing->planPriceLabel()); ?></p>
                 </article>
                 <article class="notice-card">
-                    <strong>Catalog split</strong>
+                    <strong><?= e(copy_text('premium.bar_split_title', 'Catalog split')); ?></strong>
                     <p><?= e((string) ($stats['premium'] ?? 0)); ?> premium videos and <?= e((string) max(0, ((int) ($stats['videos'] ?? 0)) - ((int) ($stats['premium'] ?? 0)))); ?> free videos.</p>
                 </article>
                 <?php if ($user): ?>
                     <article class="notice-card">
-                        <strong>Your account</strong>
+                        <strong><?= e(copy_text('premium.bar_account_title', 'Your account')); ?></strong>
                         <p><strong>Plan:</strong> <?= e(account_tier_label((string) ($user['account_tier'] ?? 'free'))); ?></p>
                         <p><strong>Membership status:</strong> <?= e(subscription_status_label((string) ($user['stripe_subscription_status'] ?? null))); ?></p>
                         <?php if (!empty($user['stripe_current_period_end'])): ?>
@@ -119,25 +119,25 @@ $flashSuccess = flash('success');
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">PLANS</span>
-                    <h2>Free vs Premium</h2>
+                    <span class="eyebrow"><?= e(copy_text('premium.plans_eyebrow', 'PLANS')); ?></span>
+                    <h2><?= e(copy_text('premium.plans_title', 'Free vs Premium')); ?></h2>
                 </div>
-                <p>Free videos stay open to everyone. Premium videos require a signed-in Premium member.</p>
+                <p><?= e(copy_text('premium.plans_description', 'Free videos stay open to everyone. Premium videos require a signed-in Premium member.')); ?></p>
             </div>
             <div class="pricing-grid">
                 <article class="pricing-card">
-                    <span class="pill pill--muted">Free</span>
-                    <h3>Free account</h3>
-                    <p>Watch every video marked as free with no payment required.</p>
+                    <span class="pill pill--muted"><?= e(copy_text('premium.free_badge', 'Free')); ?></span>
+                    <h3><?= e(copy_text('premium.free_title', 'Free account')); ?></h3>
+                    <p><?= e(copy_text('premium.free_text', 'Watch every video marked as free with no payment required.')); ?></p>
                     <ul class="pricing-list">
-                        <li>No login required for free videos</li>
-                        <li>Create an account to manage security and upgrades</li>
-                        <li>Upgrade anytime from your account</li>
+                        <li><?= e(copy_text('premium.free_item_1', 'No login required for free videos')); ?></li>
+                        <li><?= e(copy_text('premium.free_item_2', 'Create an account to manage security and upgrades')); ?></li>
+                        <li><?= e(copy_text('premium.free_item_3', 'Upgrade anytime from your account')); ?></li>
                     </ul>
                     <?php if ($user): ?>
-                        <a class="text-link" href="<?= e(base_url('account.php')); ?>">Open account</a>
+                        <a class="text-link" href="<?= e(base_url('account.php')); ?>"><?= e(copy_text('premium.free_link_signed_in', 'Open account')); ?></a>
                     <?php else: ?>
-                        <a class="text-link" href="<?= e(base_url('register.php')); ?>">Create account</a>
+                        <a class="text-link" href="<?= e(base_url('register.php')); ?>"><?= e(copy_text('premium.free_link_guest', 'Create account')); ?></a>
                     <?php endif; ?>
                 </article>
                 <article class="pricing-card pricing-card--accent">
@@ -145,24 +145,24 @@ $flashSuccess = flash('success');
                     <h3><?= e($billing->planPriceLabel()); ?></h3>
                     <p><?= e($billing->planCopy()); ?></p>
                     <ul class="pricing-list">
-                        <li>Required for every video marked Premium</li>
-                        <li>Manage payment details and cancel anytime</li>
-                        <li>Your access updates automatically after payment</li>
+                        <li><?= e(copy_text('premium.premium_item_1', 'Required for every video marked Premium')); ?></li>
+                        <li><?= e(copy_text('premium.premium_item_2', 'Manage payment details and cancel anytime')); ?></li>
+                        <li><?= e(copy_text('premium.premium_item_3', 'Your access updates automatically after payment')); ?></li>
                     </ul>
                     <?php if ($billingConfigured && $user && !user_has_premium_access($user)): ?>
                         <form method="post" action="<?= e(base_url('start-premium-checkout.php')); ?>">
                             <?= csrf_input('billing_checkout'); ?>
-                            <button class="button" type="submit">Start secure checkout</button>
+                            <button class="button" type="submit"><?= e(copy_text('premium.premium_checkout_cta', 'Start secure checkout')); ?></button>
                         </form>
                     <?php elseif ($billingConfigured && $user && (user_has_premium_access($user) || !empty($user['stripe_customer_id']))): ?>
                         <form method="post" action="<?= e(base_url('manage-billing.php')); ?>">
                             <?= csrf_input('billing_portal'); ?>
-                            <button class="button" type="submit">Manage plan</button>
+                            <button class="button" type="submit"><?= e(copy_text('premium.premium_manage_cta', 'Manage plan')); ?></button>
                         </form>
                     <?php elseif (!$user): ?>
-                        <a class="button" href="<?= e(base_url('login.php')); ?>">Sign in to upgrade</a>
+                        <a class="button" href="<?= e(base_url('login.php')); ?>"><?= e(copy_text('premium.premium_guest_cta', 'Sign in to upgrade')); ?></a>
                     <?php else: ?>
-                        <p class="form-note">Premium access is temporarily unavailable.</p>
+                        <p class="form-note"><?= e(copy_text('premium.premium_unavailable_note', 'Premium access is temporarily unavailable.')); ?></p>
                     <?php endif; ?>
                 </article>
             </div>
@@ -171,39 +171,39 @@ $flashSuccess = flash('success');
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">ACCESS RULES</span>
-                    <h2>What Premium changes</h2>
+                    <span class="eyebrow"><?= e(copy_text('premium.rules_eyebrow', 'ACCESS RULES')); ?></span>
+                    <h2><?= e(copy_text('premium.rules_title', 'What Premium changes')); ?></h2>
                 </div>
-                <p>Keep the difference simple so visitors understand what each label means before checkout.</p>
+                <p><?= e(copy_text('premium.rules_description', 'Keep the difference simple so visitors understand what each label means before checkout.')); ?></p>
             </div>
             <div class="compliance-grid">
                 <article class="compliance-card">
-                    <h3>Free</h3>
-                    <p>Videos marked as free can be watched by any visitor, even without a login.</p>
+                    <h3><?= e(copy_text('premium.rule_free_title', 'Free')); ?></h3>
+                    <p><?= e(copy_text('premium.rule_free_text', 'Videos marked as free can be watched by any visitor, even without a login.')); ?></p>
                 </article>
                 <article class="compliance-card">
-                    <h3>Premium</h3>
-                    <p>Videos marked as Premium only play for signed-in members with an active Premium plan.</p>
+                    <h3><?= e(copy_text('premium.rule_premium_title', 'Premium')); ?></h3>
+                    <p><?= e(copy_text('premium.rule_premium_text', 'Videos marked as Premium only play for signed-in members with an active Premium plan.')); ?></p>
                 </article>
                 <article class="compliance-card">
-                    <h3>Checkout</h3>
-                    <p>The upgrade flow opens a secure payment page and returns here when payment is complete.</p>
+                    <h3><?= e(copy_text('premium.rule_checkout_title', 'Checkout')); ?></h3>
+                    <p><?= e(copy_text('premium.rule_checkout_text', 'The upgrade flow opens a secure payment page and returns here when payment is complete.')); ?></p>
                 </article>
                 <article class="compliance-card">
-                    <h3>Manage plan</h3>
-                    <p>Existing subscribers can update payment details or cancel their plan from their account.</p>
+                    <h3><?= e(copy_text('premium.rule_manage_title', 'Manage plan')); ?></h3>
+                    <p><?= e(copy_text('premium.rule_manage_text', 'Existing subscribers can update payment details or cancel their plan from their account.')); ?></p>
                 </article>
             </div>
         </section>
 
         <section class="cta-band">
             <div class="cta-band__copy">
-                <span class="eyebrow">SUPPORT</span>
-                <h2>Need help before upgrading?</h2>
-                <p>Use the support page for account access, billing help, and legal contact information.</p>
+                <span class="eyebrow"><?= e(copy_text('premium.support_eyebrow', 'SUPPORT')); ?></span>
+                <h2><?= e(copy_text('premium.support_title', 'Need help before upgrading?')); ?></h2>
+                <p><?= e(copy_text('premium.support_text', 'Use the support page for account access, billing help, and legal contact information.')); ?></p>
             </div>
             <div class="hero__actions">
-                <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Open support</a>
+                <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('premium.support_cta', 'Open support')); ?></a>
             </div>
         </section>
     </main>

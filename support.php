@@ -12,43 +12,43 @@ $supportEmail = (string) config('app.support_email');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Support | <?= e(config('app.name')); ?></title>
-    <meta name="description" content="Get help with account access, Premium billing, legal notices, and platform rules.">
+    <title><?= e(copy_text('support.meta_title', 'Support')); ?> | <?= e(config('app.name')); ?></title>
+    <meta name="description" content="<?= e(copy_text('support.meta_description', 'Get help with account access, Premium billing, legal notices, and platform rules.')); ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class()); ?>">
     <?php
     $publicNavActive = 'support';
-    $publicBarItems = ['Adults only 18+', 'Account and billing help', 'Legal contact'];
+    $publicBarItems = copy_items('header.bar.support');
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
     <main class="page-shell">
         <section class="page-intro">
             <div class="page-intro__copy">
-                <span class="eyebrow">SUPPORT</span>
-                <h1>Help users find the right next step.</h1>
-                <p>Use this page for account access, Premium billing questions, legal notices, and general site guidance.</p>
+                <span class="eyebrow"><?= e(copy_text('support.hero_eyebrow', 'SUPPORT')); ?></span>
+                <h1><?= e(copy_text('support.hero_title', 'Help users find the right next step.')); ?></h1>
+                <p><?= e(copy_text('support.hero_description', 'Use this page for account access, Premium billing questions, legal notices, and general site guidance.')); ?></p>
                 <div class="hero__actions">
                     <?php if ($supportEmail !== ''): ?>
-                        <a class="button" href="mailto:<?= e($supportEmail); ?>">Email support</a>
+                        <a class="button" href="mailto:<?= e($supportEmail); ?>"><?= e(copy_text('support.hero_primary_cta', 'Email support')); ?></a>
                     <?php endif; ?>
-                    <a class="button button--ghost" href="<?= e(base_url('rules.php')); ?>">Read platform rules</a>
+                    <a class="button button--ghost" href="<?= e(base_url('rules.php')); ?>"><?= e(copy_text('support.hero_secondary_cta', 'Read platform rules')); ?></a>
                 </div>
             </div>
             <aside class="page-intro__aside">
                 <article class="notice-card">
-                    <strong>Support email</strong>
+                    <strong><?= e(copy_text('support.email_title', 'Support email')); ?></strong>
                     <?php if ($supportEmail !== ''): ?>
                         <a class="text-link" href="mailto:<?= e($supportEmail); ?>"><?= e($supportEmail); ?></a>
                     <?php else: ?>
-                        <p>Add a support email from the admin panel to show contact details here.</p>
+                        <p><?= e(copy_text('support.email_empty', 'Add a support email from the admin panel to show contact details here.')); ?></p>
                     <?php endif; ?>
                 </article>
                 <article class="notice-card">
-                    <strong>Best for</strong>
-                    <p>Account access, Premium payments, policy questions, and takedown or compliance contact.</p>
+                    <strong><?= e(copy_text('support.best_for_title', 'Best for')); ?></strong>
+                    <p><?= e(copy_text('support.best_for_text', 'Account access, Premium payments, policy questions, and takedown or compliance contact.')); ?></p>
                 </article>
             </aside>
         </section>
@@ -56,40 +56,40 @@ $supportEmail = (string) config('app.support_email');
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">HELP TOPICS</span>
-                    <h2>Choose the right path</h2>
+                    <span class="eyebrow"><?= e(copy_text('support.topics_eyebrow', 'HELP TOPICS')); ?></span>
+                    <h2><?= e(copy_text('support.topics_title', 'Choose the right path')); ?></h2>
                 </div>
-                <p>Keep support organized by the job the visitor needs to complete.</p>
+                <p><?= e(copy_text('support.topics_description', 'Keep support organized by the job the visitor needs to complete.')); ?></p>
             </div>
             <div class="support-grid">
                 <article class="support-card">
-                    <span class="pill pill--muted">Accounts</span>
-                    <h3>Sign in and account access</h3>
-                    <p>Use these pages when someone needs to sign in, register, reset a password, or manage account security.</p>
+                    <span class="pill pill--muted"><?= e(copy_text('support.accounts_badge', 'Accounts')); ?></span>
+                    <h3><?= e(copy_text('support.accounts_title', 'Sign in and account access')); ?></h3>
+                    <p><?= e(copy_text('support.accounts_text', 'Use these pages when someone needs to sign in, register, reset a password, or manage account security.')); ?></p>
                     <div class="site-footer__links">
-                        <a class="text-link" href="<?= e(base_url('login.php')); ?>">Sign in</a>
-                        <a class="text-link" href="<?= e(base_url('register.php')); ?>">Create account</a>
-                        <a class="text-link" href="<?= e(base_url('forgot-password.php')); ?>">Reset password</a>
+                        <a class="text-link" href="<?= e(base_url('login.php')); ?>"><?= e(copy_text('header.nav.sign_in', 'Sign in')); ?></a>
+                        <a class="text-link" href="<?= e(base_url('register.php')); ?>"><?= e(copy_text('common.create_account', 'Create account')); ?></a>
+                        <a class="text-link" href="<?= e(base_url('forgot-password.php')); ?>"><?= e(copy_text('auth.forgot.title', 'Reset password')); ?></a>
                         <?php if ($user): ?>
-                            <a class="text-link" href="<?= e(base_url('account.php')); ?>">Open my account</a>
+                            <a class="text-link" href="<?= e(base_url('account.php')); ?>"><?= e(copy_text('header.nav.account', 'My account')); ?></a>
                         <?php endif; ?>
                     </div>
                 </article>
                 <article class="support-card">
-                    <span class="pill">Premium</span>
-                    <h3>Plans and billing</h3>
-                    <p>Show visitors how Free and Premium access works and where they can manage an active subscription.</p>
+                    <span class="pill"><?= e(copy_text('support.billing_badge', 'Premium')); ?></span>
+                    <h3><?= e(copy_text('support.billing_title', 'Plans and billing')); ?></h3>
+                    <p><?= e(copy_text('support.billing_text', 'Show visitors how Free and Premium access works and where they can manage an active subscription.')); ?></p>
                     <div class="site-footer__links">
-                        <a class="text-link" href="<?= e(base_url('premium.php')); ?>">View plans</a>
+                        <a class="text-link" href="<?= e(base_url('premium.php')); ?>"><?= e(copy_text('common.view_plans', 'View plans')); ?></a>
                         <?php if ($user): ?>
-                            <a class="text-link" href="<?= e(base_url('account.php#subscription')); ?>">Membership status</a>
+                            <a class="text-link" href="<?= e(base_url('account.php#subscription')); ?>"><?= e(copy_text('support.billing_link_signed_in', 'Membership status')); ?></a>
                         <?php endif; ?>
                     </div>
                 </article>
                 <article class="support-card">
-                    <span class="pill pill--muted">Policies</span>
-                    <h3>Rules and legal information</h3>
-                    <p>Use these pages for platform rules, terms, privacy, and cookie information.</p>
+                    <span class="pill pill--muted"><?= e(copy_text('support.policies_badge', 'Policies')); ?></span>
+                    <h3><?= e(copy_text('support.policies_title', 'Rules and legal information')); ?></h3>
+                    <p><?= e(copy_text('support.policies_text', 'Use these pages for platform rules, terms, privacy, and cookie information.')); ?></p>
                     <div class="site-footer__links">
                         <a class="text-link" href="<?= e(base_url('rules.php')); ?>">Platform rules</a>
                         <a class="text-link" href="<?= e(base_url('terms.php')); ?>">Terms of use</a>
@@ -102,13 +102,13 @@ $supportEmail = (string) config('app.support_email');
 
         <section class="cta-band">
             <div class="cta-band__copy">
-                <span class="eyebrow">DISCOVERY</span>
-                <h2>Still browsing?</h2>
-                <p>Head back to the public catalog to browse Free and Premium titles with filters and sorting.</p>
+                <span class="eyebrow"><?= e(copy_text('support.discovery_eyebrow', 'DISCOVERY')); ?></span>
+                <h2><?= e(copy_text('support.discovery_title', 'Still browsing?')); ?></h2>
+                <p><?= e(copy_text('support.discovery_text', 'Head back to the public catalog to browse Free and Premium titles with filters and sorting.')); ?></p>
             </div>
             <div class="hero__actions">
-                <a class="button" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
-                <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>">See Premium</a>
+                <a class="button" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('support.discovery_primary_cta', 'Browse videos')); ?></a>
+                <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>"><?= e(copy_text('support.discovery_secondary_cta', 'See Premium')); ?></a>
             </div>
         </section>
     </main>

@@ -38,17 +38,17 @@ if (is_post_request()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New password | <?= e(config('app.name')); ?></title>
+    <title><?= e(copy_text('auth.reset.title', 'New password')); ?> | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="auth-body <?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class('auth-body')); ?>">
     <main class="auth-layout">
         <section class="auth-intro">
-            <span class="eyebrow">RESET</span>
-            <h1>Choose a new password</h1>
-            <p>Use a strong password with at least 8 characters.</p>
-            <a class="text-link" href="<?= e(base_url('login.php')); ?>">Back to sign in</a>
+            <span class="eyebrow"><?= e(copy_text('auth.reset.eyebrow', 'RESET')); ?></span>
+            <h1><?= e(copy_text('auth.reset.heading', 'Choose a new password')); ?></h1>
+            <p><?= e(copy_text('auth.reset.text', 'Use a strong password with at least 8 characters.')); ?></p>
+            <a class="text-link" href="<?= e(base_url('login.php')); ?>"><?= e(copy_text('common.back_to_sign_in', 'Back to sign in')); ?></a>
         </section>
         <section class="auth-card">
             <?php if ($flashError): ?>
@@ -56,25 +56,25 @@ if (is_post_request()) {
             <?php endif; ?>
             <?php if ($flashSuccess): ?>
                 <div class="flash flash--success"><?= e((string) $flashSuccess); ?></div>
-                <a class="button" href="<?= e(base_url('login.php')); ?>">Go to sign in</a>
+                <a class="button" href="<?= e(base_url('login.php')); ?>"><?= e(copy_text('auth.reset.success_cta', 'Go to sign in')); ?></a>
             <?php elseif ($token === ''): ?>
                 <div class="notice-card">
-                    <strong>Reset link unavailable</strong>
-                    <p>This reset link is not valid anymore. Request a new one and try again.</p>
+                    <strong><?= e(copy_text('auth.reset.invalid_title', 'Reset link unavailable')); ?></strong>
+                    <p><?= e(copy_text('auth.reset.invalid_text', 'This reset link is not valid anymore. Request a new one and try again.')); ?></p>
                 </div>
             <?php else: ?>
                 <form method="post" class="auth-form">
                     <?= csrf_input('reset_password'); ?>
                     <input type="hidden" name="token" value="<?= e($token); ?>">
                     <label>
-                        <span>New password</span>
+                        <span><?= e(copy_text('auth.reset.password', 'New password')); ?></span>
                         <input type="password" name="password" required>
                     </label>
                     <label>
-                        <span>Confirm new password</span>
+                        <span><?= e(copy_text('auth.reset.password_confirmation', 'Confirm new password')); ?></span>
                         <input type="password" name="password_confirmation" required>
                     </label>
-                    <button class="button" type="submit">Save new password</button>
+                    <button class="button" type="submit"><?= e(copy_text('auth.reset.submit', 'Save new password')); ?></button>
                 </form>
             <?php endif; ?>
         </section>

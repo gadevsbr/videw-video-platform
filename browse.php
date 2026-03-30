@@ -27,40 +27,40 @@ $bootPayload = default_bootstrap_payload('browse', [
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browse | <?= e(config('app.name')); ?></title>
-    <meta name="description" content="Browse the full <?= e(config('app.name')); ?> library with filters for title, creator, category, and access level.">
+    <title><?= e(copy_text('browse.meta_title', 'Browse')); ?> | <?= e(config('app.name')); ?></title>
+    <meta name="description" content="<?= e(copy_text('browse.meta_description', 'Browse the full library with filters for title, creator, category, and access level.')); ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class()); ?>">
     <?php
     $publicNavActive = 'browse';
-    $publicBarItems = ['Adults only 18+', 'Search and filters', 'Free and Premium catalog'];
+    $publicBarItems = copy_items('header.bar.browse');
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
     <main class="page-shell">
         <section class="page-intro">
             <div class="page-intro__copy">
-                <span class="eyebrow">BROWSE</span>
-                <h1>Find videos faster.</h1>
-                <p>Search by title or creator, filter by category, and switch between Free and Premium in one place.</p>
+                <span class="eyebrow"><?= e(copy_text('browse.hero_eyebrow', 'BROWSE')); ?></span>
+                <h1><?= e(copy_text('browse.hero_title', 'Find videos faster.')); ?></h1>
+                <p><?= e(copy_text('browse.hero_description', 'Search by title or creator, filter by category, and switch between Free and Premium in one place.')); ?></p>
                 <div class="hero__actions">
-                    <a class="button" href="#catalog-app">Start browsing</a>
-                    <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>">See Premium</a>
+                    <a class="button" href="#catalog-app"><?= e(copy_text('browse.hero_primary_cta', 'Start browsing')); ?></a>
+                    <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>"><?= e(copy_text('browse.hero_secondary_cta', 'See Premium')); ?></a>
                 </div>
             </div>
             <aside class="page-intro__aside">
                 <article class="mini-stat">
-                    <span>Total videos</span>
+                    <span><?= e(copy_text('browse.stats_total_label', 'Total videos')); ?></span>
                     <strong><?= e((string) ($stats['videos'] ?? 0)); ?></strong>
                 </article>
                 <article class="mini-stat">
-                    <span>Premium videos</span>
+                    <span><?= e(copy_text('browse.stats_premium_label', 'Premium videos')); ?></span>
                     <strong><?= e((string) ($stats['premium'] ?? 0)); ?></strong>
                 </article>
                 <article class="mini-stat">
-                    <span>Creators</span>
+                    <span><?= e(copy_text('browse.stats_creators_label', 'Creators')); ?></span>
                     <strong><?= e((string) ($stats['creators'] ?? 0)); ?></strong>
                 </article>
             </aside>
@@ -70,10 +70,10 @@ $bootPayload = default_bootstrap_payload('browse', [
             <section class="catalog-section">
                 <div class="section-heading">
                     <div>
-                        <span class="eyebrow">FEATURED NOW</span>
-                        <h2>Quick starts</h2>
+                        <span class="eyebrow"><?= e(copy_text('browse.featured_eyebrow', 'FEATURED NOW')); ?></span>
+                        <h2><?= e(copy_text('browse.featured_title', 'Quick starts')); ?></h2>
                     </div>
-                    <p>Start with one of the current highlights, then keep filtering below.</p>
+                    <p><?= e(copy_text('browse.featured_description', 'Start with one of the current highlights, then keep filtering below.')); ?></p>
                 </div>
                 <div class="featured-grid">
                     <?php foreach (array_slice($featured, 0, 3) as $video): ?>
@@ -93,7 +93,7 @@ $bootPayload = default_bootstrap_payload('browse', [
                                 <p><?= e($video['synopsis']); ?></p>
                                 <div class="video-card__footer">
                                     <span><?= e($video['creator_name']); ?></span>
-                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
+                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>"><?= e(copy_text('common.watch_now', 'Watch now')); ?></a>
                                 </div>
                             </div>
                         </article>
@@ -105,10 +105,10 @@ $bootPayload = default_bootstrap_payload('browse', [
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">FULL LIBRARY</span>
-                    <h2>Search, filter, and sort</h2>
+                    <span class="eyebrow"><?= e(copy_text('browse.library_eyebrow', 'FULL LIBRARY')); ?></span>
+                    <h2><?= e(copy_text('browse.library_title', 'Search, filter, and sort')); ?></h2>
                 </div>
-                <p>Keep the homepage lighter and use this page when you want the full browsing workflow.</p>
+                <p><?= e(copy_text('browse.library_description', 'Keep the homepage lighter and use this page when you want the full browsing workflow.')); ?></p>
             </div>
             <div id="catalog-app">
                 <div class="grid-fallback">
@@ -129,7 +129,7 @@ $bootPayload = default_bootstrap_payload('browse', [
                                 <p><?= e($video['synopsis']); ?></p>
                                 <div class="video-card__footer">
                                     <span><?= e($video['creator_name']); ?></span>
-                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
+                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>"><?= e(copy_text('common.watch_now', 'Watch now')); ?></a>
                                 </div>
                             </div>
                         </article>
@@ -140,16 +140,16 @@ $bootPayload = default_bootstrap_payload('browse', [
 
         <section class="cta-band">
             <div class="cta-band__copy">
-                <span class="eyebrow">HELP</span>
-                <h2>Need account or billing help?</h2>
-                <p>Open support for account access, Premium questions, legal contact, and platform rules.</p>
+                <span class="eyebrow"><?= e(copy_text('browse.help_eyebrow', 'HELP')); ?></span>
+                <h2><?= e(copy_text('browse.help_title', 'Need account or billing help?')); ?></h2>
+                <p><?= e(copy_text('browse.help_description', 'Open support for account access, Premium questions, legal contact, and platform rules.')); ?></p>
             </div>
             <div class="hero__actions">
-                <a class="button" href="<?= e(base_url('support.php')); ?>">Open support</a>
+                <a class="button" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('browse.help_primary_cta', 'Open support')); ?></a>
                 <?php if ($user): ?>
-                    <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Go to my account</a>
+                    <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>"><?= e(copy_text('browse.help_secondary_signed_in', 'Go to my account')); ?></a>
                 <?php else: ?>
-                    <a class="button button--ghost" href="<?= e(base_url('register.php')); ?>">Create account</a>
+                    <a class="button button--ghost" href="<?= e(base_url('register.php')); ?>"><?= e(copy_text('browse.help_secondary_guest', 'Create account')); ?></a>
                 <?php endif; ?>
             </div>
         </section>

@@ -2,8 +2,8 @@
 
 return [
     'app' => [
-        'name' => (string) env_value('VIDEW_APP_NAME', 'VIDEW 18+'),
-        'description' => (string) env_value('VIDEW_APP_DESCRIPTION', '18+ video platform with free and premium access.'),
+        'name' => (string) env_value('VIDEW_APP_NAME', 'VIDEW'),
+        'description' => (string) env_value('VIDEW_APP_DESCRIPTION', 'Video platform with free and premium access.'),
         'base_url' => rtrim((string) env_value('VIDEW_BASE_URL', ''), '/'),
         'support_email' => (string) env_value('VIDEW_SUPPORT_EMAIL', 'compliance@videw.local'),
         'brand_kicker' => (string) env_value('VIDEW_BRAND_KICKER', 'VIDEW'),
@@ -56,7 +56,7 @@ return [
         'premium_price_label' => (string) env_value('VIDEW_STRIPE_PREMIUM_PRICE_LABEL', '$9.99 / month'),
     ],
     'footer' => [
-        'tagline' => (string) env_value('VIDEW_FOOTER_TAGLINE', (string) env_value('VIDEW_APP_DESCRIPTION', '18+ video platform with free and premium access.')),
+        'tagline' => (string) env_value('VIDEW_FOOTER_TAGLINE', (string) env_value('VIDEW_APP_DESCRIPTION', 'Video platform with free and premium access.')),
         'useful_title' => (string) env_value('VIDEW_FOOTER_USEFUL_TITLE', 'Useful links'),
         'legal_title' => (string) env_value('VIDEW_FOOTER_LEGAL_TITLE', 'Legal'),
         'support_title' => (string) env_value('VIDEW_FOOTER_SUPPORT_TITLE', 'Support'),
@@ -146,4 +146,5 @@ return [
         'link_label' => (string) env_value('VIDEW_COOKIE_NOTICE_LINK_LABEL', 'Read cookie policy'),
         'link_url' => (string) env_value('VIDEW_COOKIE_NOTICE_LINK_URL', 'cookies.php'),
     ],
+    'copy' => require __DIR__ . '/copy.php',
 ];

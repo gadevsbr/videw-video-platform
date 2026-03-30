@@ -4,6 +4,7 @@ const bootstrap = window.__VIDEW__ ?? {};
 const baseUrl = bootstrap.baseUrl ?? "";
 const exitUrl = bootstrap.exitUrl ?? "https://www.google.com";
 const initialVideos = Array.isArray(bootstrap.videos) ? bootstrap.videos : [];
+const catalogCopy = bootstrap.catalogCopy ?? {};
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 function watchUrl(slug) {
@@ -29,7 +30,7 @@ function sortVideos(videos, sortMode) {
 }
 
 function categoryChip(label, currentCategory) {
-  const chipLabel = label === "all" ? "All" : label;
+  const chipLabel = label === "all" ? (catalogCopy.accessAll ?? "All") : label;
 
   return html`
     <button
@@ -87,7 +88,7 @@ function renderVideoCard(video) {
         <p>${video.synopsis}</p>
         <div class="video-card__footer">
           <span>${video.creator_name}</span>
-          <a class="text-link" href=${href}>Watch now</a>
+          <a class="text-link" href=${href}>${catalogCopy.watchNow ?? "Watch now"}</a>
         </div>
       </div>
     </article>
@@ -97,9 +98,9 @@ function renderVideoCard(video) {
 function renderEmptyState() {
   return html`
     <article class="empty-state">
-      <span class="eyebrow">NO RESULTS</span>
-      <h3>No videos match your filters.</h3>
-      <p>Try another word or change one of the filters.</p>
+      <span class="eyebrow">${catalogCopy.emptyEyebrow ?? "NO RESULTS"}</span>
+      <h3>${catalogCopy.emptyTitle ?? "No videos match your filters."}</h3>
+      <p>${catalogCopy.emptyText ?? "Try another word or change one of the filters."}</p>
     </article>
   `;
 }
@@ -137,17 +138,17 @@ function CatalogApp() {
   const paidCount = computed(() => videos.value.filter((video) => video.access_level !== "free").length);
   const resultLabel = computed(() => {
     const count = filteredVideos.value.length;
-    return `${numberFormatter.format(count)} ${count === 1 ? "video found" : "videos found"}`;
+    return `${numberFormatter.format(count)} ${count === 1 ? (catalogCopy.resultsOne ?? "video found") : (catalogCopy.resultsMany ?? "videos found")}`;
   });
 
   return html`
     <section class="catalog-ui">
       <div class="catalog-ui__toolbar">
         <label class="field">
-          <span>Search by title or creator</span>
+          <span>${catalogCopy.searchLabel ?? "Search by title or creator"}</span>
           <input
             type="search"
-            placeholder="Search titles or creators"
+            placeholder=${catalogCopy.searchPlaceholder ?? "Search titles or creators"}
             value=${() => query.value}
             on:input=${(event) => {
               query.value = event.target.value;
@@ -156,15 +157,15 @@ function CatalogApp() {
         </label>
         <div class="catalog-ui__stats">
           <article class="mini-stat">
-            <span>Results</span>
+            <span>${catalogCopy.resultsLabel ?? "Results"}</span>
             <strong>${() => numberFormatter.format(filteredVideos.value.length)}</strong>
           </article>
           <article class="mini-stat">
-            <span>Premium videos</span>
+            <span>${catalogCopy.premiumLabel ?? "Premium videos"}</span>
             <strong>${() => numberFormatter.format(paidCount.value)}</strong>
           </article>
           <article class="mini-stat">
-            <span>Total library</span>
+            <span>${catalogCopy.totalLabel ?? "Total library"}</span>
             <strong>${() => numberFormatter.format(videos.value.length)}</strong>
           </article>
         </div>
@@ -172,30 +173,30 @@ function CatalogApp() {
 
       <div class="catalog-ui__panel">
         <div class="catalog-ui__group">
-          <span class="field-label">Category</span>
+          <span class="field-label">${catalogCopy.categoryLabel ?? "Category"}</span>
           <div class="chip-row">${() => categories.value.map((item) => categoryChip(item, category))}</div>
         </div>
         <div class="catalog-ui__group">
-          <span class="field-label">Access</span>
+          <span class="field-label">${catalogCopy.accessLabel ?? "Access"}</span>
           <div class="toggle-row">
-            ${accessToggle("all", "All", access)}
-            ${accessToggle("free", "Free", access)}
-            ${accessToggle("premium", "Premium", access)}
+            ${accessToggle("all", catalogCopy.accessAll ?? "All", access)}
+            ${accessToggle("free", catalogCopy.accessFree ?? "Free", access)}
+            ${accessToggle("premium", catalogCopy.accessPremium ?? "Premium", access)}
           </div>
         </div>
         <div class="catalog-ui__group">
-          <span class="field-label">Sort</span>
+          <span class="field-label">${catalogCopy.sortLabel ?? "Sort"}</span>
           <div class="toggle-row">
-            ${sortToggle("recent", "Newest", sort)}
-            ${sortToggle("duration", "Longest", sort)}
-            ${sortToggle("title", "A-Z", sort)}
+            ${sortToggle("recent", catalogCopy.sortRecent ?? "Newest", sort)}
+            ${sortToggle("duration", catalogCopy.sortDuration ?? "Longest", sort)}
+            ${sortToggle("title", catalogCopy.sortTitle ?? "A-Z", sort)}
           </div>
         </div>
       </div>
 
       <div class="catalog-ui__summary">
         <p>${() => resultLabel.value}</p>
-        <span>${bootstrap.usingFallback ? "Preview catalog is active." : "Browse the latest videos below."}</span>
+        <span>${bootstrap.usingFallback ? (catalogCopy.summaryFallback ?? "Preview catalog is active.") : (catalogCopy.summaryLive ?? "Browse the latest videos below.")}</span>
       </div>
 
       <div class="catalog-grid">
@@ -215,7 +216,7 @@ function AgeGateApp() {
   });
 
   async function confirmAge() {
-    status.value = "Saving your confirmation...";
+    status.value = settings.savingLabel ?? "Saving your confirmation...";
 
     try {
       const response = await fetch(`${baseUrl}/api/session.php`, {
@@ -229,30 +230,30 @@ function AgeGateApp() {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.message ?? "We could not save your confirmation.");
+        throw new Error(data.message ?? settings.saveErrorLabel ?? "We could not save your confirmation.");
       }
 
       visible.value = false;
       status.value = "";
     } catch (error) {
-      status.value = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      status.value = error instanceof Error ? error.message : settings.errorLabel ?? "Something went wrong. Please try again.";
     }
   }
 
   return html`
     <div class=${() => visible.value ? "age-gate age-gate--visible" : "age-gate"}>
       <div class="age-gate__panel">
-        <span class="eyebrow">18+ ONLY</span>
-        <h2>Before you enter</h2>
-        <p>This site contains adult content and is only for people who are 18 or older.</p>
+        <span class="eyebrow">${settings.eyebrow ?? "18+ ONLY"}</span>
+        <h2>${settings.title ?? "Before you enter"}</h2>
+        <p>${settings.text ?? "This site contains age-restricted content and is only for people who are 18 or older."}</p>
         <ul class="age-gate__list">
-          <li>By entering, you confirm that you are 18 or older.</li>
-          <li>Adult content stays clearly marked across the site.</li>
-          <li>You can leave this page at any time.</li>
+          <li>${settings.item1 ?? "By entering, you confirm that you are 18 or older."}</li>
+          <li>${settings.item2 ?? "Restricted content stays clearly marked across the site."}</li>
+          <li>${settings.item3 ?? "You can leave this page at any time."}</li>
         </ul>
         <div class="hero__actions">
-          <button class="button" type="button" on:click=${confirmAge}>I am 18+</button>
-          <a class="button button--ghost" href=${exitUrl} rel="noreferrer">Leave</a>
+          <button class="button" type="button" on:click=${confirmAge}>${settings.confirmLabel ?? "I am 18+"}</button>
+          <a class="button button--ghost" href=${exitUrl} rel="noreferrer">${settings.leaveLabel ?? "Leave"}</a>
         </div>
         <p class="form-note">${() => status.value}</p>
       </div>

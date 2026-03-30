@@ -35,15 +35,15 @@ clear_old_input();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= e(config('app.name')); ?> | Adult Video Platform</title>
+    <title><?= e(config('app.name')); ?> | <?= e(copy_text('home.title_suffix', 'Video Platform')); ?></title>
     <meta name="description" content="<?= e((string) config('app.description')); ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
+<body class="<?= e(page_lock_class()); ?>">
     <?php
     $publicNavActive = 'home';
-    $publicBarItems = ['Adults only 18+', 'Verified creators', 'Free and Premium access'];
+    $publicBarItems = copy_items('header.bar.home');
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
@@ -57,34 +57,34 @@ clear_old_input();
     <main class="page-shell">
         <section class="hero hero--landing">
             <div class="hero__copy">
-                <span class="eyebrow">18+ STREAMING</span>
-                <h1>Watch verified adult videos.</h1>
-                <p>Discover free and Premium scenes with simple labels, cleaner navigation, and a faster path to playback.</p>
+                <span class="eyebrow"><?= e(copy_text('home.hero_eyebrow', 'VIDEO PLATFORM')); ?></span>
+                <h1><?= e(copy_text('home.hero_title', 'Launch a clean video experience.')); ?></h1>
+                <p><?= e(copy_text('home.hero_description', 'Show free and premium videos with a simpler browsing flow, cleaner labels, and a faster path to playback.')); ?></p>
                 <div class="hero__actions">
-                    <a class="button" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
-                    <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>">See Premium</a>
+                    <a class="button" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('home.hero_primary_cta', 'Browse videos')); ?></a>
+                    <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>"><?= e(copy_text('home.hero_secondary_cta', 'See Premium')); ?></a>
                 </div>
                 <div class="hero-metrics">
                     <article class="hero-metric">
-                        <span class="stat-card__label">Library</span>
+                        <span class="stat-card__label"><?= e(copy_text('home.stats_library_label', 'Library')); ?></span>
                         <strong><?= e((string) $stats['videos']); ?></strong>
-                        <span>published videos</span>
+                        <span><?= e(copy_text('home.stats_library_value_note', 'published videos')); ?></span>
                     </article>
                     <article class="hero-metric">
-                        <span class="stat-card__label">Creators</span>
+                        <span class="stat-card__label"><?= e(copy_text('home.stats_creators_label', 'Creators')); ?></span>
                         <strong><?= e((string) $stats['creators']); ?></strong>
-                        <span>active profiles</span>
+                        <span><?= e(copy_text('home.stats_creators_value_note', 'active profiles')); ?></span>
                     </article>
                     <article class="hero-metric">
-                        <span class="stat-card__label">Premium</span>
+                        <span class="stat-card__label"><?= e(copy_text('home.stats_premium_label', 'Premium')); ?></span>
                         <strong><?= e((string) $stats['premium']); ?></strong>
-                        <span>paid items</span>
+                        <span><?= e(copy_text('home.stats_premium_value_note', 'paid items')); ?></span>
                     </article>
                 </div>
                 <?php if ($repository->usingFallback()): ?>
                     <div class="notice-card">
-                        <strong>Catalog preview</strong>
-                        <p>A preview selection is showing right now. The full library will appear here when your site is fully connected.</p>
+                        <strong><?= e(copy_text('home.fallback_notice_title', 'Catalog preview')); ?></strong>
+                        <p><?= e(copy_text('home.fallback_notice_text', 'A preview selection is showing right now. The full library will appear here when your site is fully connected.')); ?></p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -126,10 +126,10 @@ clear_old_input();
         <section class="featured-strip">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">FEATURED</span>
-                    <h2>Start with the featured picks</h2>
+                    <span class="eyebrow"><?= e(copy_text('home.featured_eyebrow', 'FEATURED')); ?></span>
+                    <h2><?= e(copy_text('home.featured_title', 'Start with the featured picks')); ?></h2>
                 </div>
-                <p>Use the home page for quick discovery, then jump into the full browse view when you want filters.</p>
+                <p><?= e(copy_text('home.featured_description', 'Use the home page for quick discovery, then jump into the full browse view when you want filters.')); ?></p>
             </div>
             <div class="featured-grid">
                 <?php foreach (array_slice($featured, 0, 3) as $video): ?>
@@ -149,7 +149,7 @@ clear_old_input();
                             <p><?= e($video['synopsis']); ?></p>
                             <div class="video-card__footer">
                                 <span><?= e($video['creator_name']); ?></span>
-                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
+                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>"><?= e(copy_text('common.watch_now', 'Watch now')); ?></a>
                             </div>
                         </div>
                     </article>
@@ -160,10 +160,10 @@ clear_old_input();
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">QUICK BROWSE</span>
-                    <h2>Preview the latest uploads</h2>
+                    <span class="eyebrow"><?= e(copy_text('home.quick_eyebrow', 'QUICK BROWSE')); ?></span>
+                    <h2><?= e(copy_text('home.quick_title', 'Preview the latest uploads')); ?></h2>
                 </div>
-                <p>Keep browsing on the dedicated library page for search, filters, and sorting.</p>
+                <p><?= e(copy_text('home.quick_description', 'Keep browsing on the dedicated library page for search, filters, and sorting.')); ?></p>
             </div>
             <div class="grid-fallback">
                 <?php foreach ($previewVideos as $video): ?>
@@ -183,7 +183,7 @@ clear_old_input();
                             <p><?= e($video['synopsis']); ?></p>
                             <div class="video-card__footer">
                                 <span><?= e($video['creator_name']); ?></span>
-                                <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
+                                <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>"><?= e(copy_text('common.watch_now', 'Watch now')); ?></a>
                             </div>
                         </div>
                     </article>
@@ -191,13 +191,13 @@ clear_old_input();
             </div>
             <div class="cta-band">
                 <div class="cta-band__copy">
-                    <span class="eyebrow">NEXT STEP</span>
-                    <h2>Open the full library</h2>
-                    <p>Search by title, creator, category, or access level on the dedicated browse page.</p>
+                    <span class="eyebrow"><?= e(copy_text('home.next_eyebrow', 'NEXT STEP')); ?></span>
+                    <h2><?= e(copy_text('home.next_title', 'Open the full library')); ?></h2>
+                    <p><?= e(copy_text('home.next_description', 'Search by title, creator, category, or access level on the dedicated browse page.')); ?></p>
                 </div>
                 <div class="hero__actions">
-                    <a class="button" href="<?= e(base_url('browse.php')); ?>">Open browse page</a>
-                    <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Need help?</a>
+                    <a class="button" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('home.next_primary_cta', 'Open browse page')); ?></a>
+                    <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('home.next_secondary_cta', 'Need help?')); ?></a>
                 </div>
             </div>
         </section>
@@ -205,27 +205,27 @@ clear_old_input();
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">MEMBERSHIP</span>
-                    <h2>Choose how you want to watch</h2>
+                    <span class="eyebrow"><?= e(copy_text('home.membership_eyebrow', 'MEMBERSHIP')); ?></span>
+                    <h2><?= e(copy_text('home.membership_title', 'Choose how you want to watch')); ?></h2>
                 </div>
-                <p>Free videos stay open to everyone. Premium videos stay reserved for paying members.</p>
+                <p><?= e(copy_text('home.membership_description', 'Free videos stay open to everyone. Premium videos stay reserved for paying members.')); ?></p>
             </div>
             <div class="pricing-grid">
                 <article class="pricing-card">
-                    <span class="pill pill--muted">Free</span>
-                    <h3>Open access videos</h3>
-                    <p>Watch any video marked Free without payment. Create an account only when you want saved access, billing, or added security.</p>
+                    <span class="pill pill--muted"><?= e(copy_text('home.free_badge', 'Free')); ?></span>
+                    <h3><?= e(copy_text('home.free_title', 'Open access videos')); ?></h3>
+                    <p><?= e(copy_text('home.free_text', 'Watch any video marked Free without payment. Create an account only when you want saved access, billing, or added security.')); ?></p>
                     <div class="hero__actions">
-                        <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse free videos</a>
+                        <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('home.free_cta', 'Browse free videos')); ?></a>
                     </div>
                 </article>
                 <article class="pricing-card pricing-card--accent">
-                    <span class="pill">Premium</span>
-                    <h3>One plan for every Premium title</h3>
-                    <p>Use one membership to unlock all Premium videos, then manage billing from your account whenever you need.</p>
+                    <span class="pill"><?= e(copy_text('home.premium_badge', 'Premium')); ?></span>
+                    <h3><?= e(copy_text('home.premium_title', 'One plan for every Premium title')); ?></h3>
+                    <p><?= e(copy_text('home.premium_text', 'Use one membership to unlock all Premium videos, then manage billing from your account whenever you need.')); ?></p>
                     <div class="hero__actions">
-                        <a class="button" href="<?= e(base_url('premium.php')); ?>">View plans</a>
-                        <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Payment help</a>
+                        <a class="button" href="<?= e(base_url('premium.php')); ?>"><?= e(copy_text('home.premium_primary_cta', 'View plans')); ?></a>
+                        <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('home.premium_secondary_cta', 'Payment help')); ?></a>
                     </div>
                 </article>
             </div>

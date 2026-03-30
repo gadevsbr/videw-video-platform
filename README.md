@@ -103,6 +103,7 @@ The admin panel is organized by job:
 - `moderation`
 - `users`
 - `settings`
+- `copy`
 - `legal`
 - `activity`
 
@@ -112,6 +113,7 @@ It includes:
 - moderation workflow
 - user role and suspension management
 - Stripe and Wasabi configuration
+- public text editing for homepage, browse, plans, support, watch, account, auth, and age-gate copy
 - audit log filtering and CSV export
 - footer, terms, privacy, cookies, and notice editing
 
