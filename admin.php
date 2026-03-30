@@ -113,6 +113,7 @@ if (is_post_request()) {
                 'base_url' => trim((string) ($_POST['base_url'] ?? base_url())),
                 'support_email' => trim((string) ($_POST['support_email'] ?? (string) config('app.support_email'))),
                 'exit_url' => trim((string) ($_POST['exit_url'] ?? (string) config('app.exit_url'))),
+                'public_head_scripts' => trim((string) ($_POST['public_head_scripts'] ?? (string) config('app.public_head_scripts'))),
                 'timezone' => trim((string) ($_POST['timezone'] ?? (string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo'))),
             ];
 
@@ -466,6 +467,7 @@ $appSettings = [
     'base_url' => base_url(),
     'support_email' => (string) config('app.support_email'),
     'exit_url' => (string) config('app.exit_url'),
+    'public_head_scripts' => (string) config('app.public_head_scripts'),
     'timezone' => (string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo'),
 ];
 $billingSettings = [
@@ -1818,7 +1820,7 @@ $currentScreen = $screenMeta[$screen];
                         <span class="eyebrow">SETTINGS</span>
                         <h2>General application settings</h2>
                     </div>
-                    <p>Update the public name, support details, and main site links.</p>
+                    <p>Update the public name, support details, main site links, and optional head scripts.</p>
                 </div>
                 <div class="admin-screen-grid">
                     <form method="post" class="admin-form-shell">
@@ -1872,12 +1874,28 @@ $currentScreen = $screenMeta[$screen];
                                 </label>
                             </div>
                         </section>
+                        <section class="admin-form-section">
+                            <div class="admin-form-section__header">
+                                <h3>Public head scripts</h3>
+                                <p>Paste analytics, monetization, verification, or tracking scripts that should load inside the <head> of public pages.</p>
+                            </div>
+                            <label>
+                                <span>Scripts rendered on public pages</span>
+                                <textarea name="public_head_scripts" rows="10" placeholder="<script async src=&quot;https://www.googletagmanager.com/gtag/js?id=...&quot;></script><?= PHP_EOL; ?><script>/* analytics or adsense code */</script>"><?= e($appSettings['public_head_scripts']); ?></textarea>
+                            </label>
+                            <p class="form-note">These scripts are injected as-is into public page heads. Admin and installer screens are excluded.</p>
+                        </section>
                         <button class="button" type="submit">Save site settings</button>
                     </form>
                     <div class="admin-sidebar-stack">
                         <article class="compliance-card">
                             <h3>Private site settings</h3>
                             <p>These details are saved privately for this site and are not shown on the public pages.</p>
+                        </article>
+                        <article class="compliance-card">
+                            <h3>Head script status</h3>
+                            <p><strong>Custom scripts:</strong> <?= trim($appSettings['public_head_scripts']) !== '' ? 'Enabled' : 'Disabled'; ?></p>
+                            <p>Useful for Google Analytics, AdSense, verification tags, pixels, and other monetization or measurement platforms.</p>
                         </article>
                     </div>
                 </div>

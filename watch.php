@@ -29,6 +29,7 @@ $user = current_user();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $video ? e($video['title']) . ' | ' . e(config('app.name')) : 'Video not found'; ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

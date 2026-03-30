@@ -38,6 +38,7 @@ clear_old_input();
     <title><?= e(config('app.name')); ?> | Adult Video Platform</title>
     <meta name="description" content="<?= e((string) config('app.description')); ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

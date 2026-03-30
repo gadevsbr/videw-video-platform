@@ -30,6 +30,7 @@ $bootPayload = default_bootstrap_payload('browse', [
     <title>Browse | <?= e(config('app.name')); ?></title>
     <meta name="description" content="Browse the full <?= e(config('app.name')); ?> library with filters for title, creator, category, and access level.">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

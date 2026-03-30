@@ -15,6 +15,7 @@ $supportEmail = (string) config('app.support_email');
     <title>Support | <?= e(config('app.name')); ?></title>
     <meta name="description" content="Get help with account access, Premium billing, legal notices, and platform rules.">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

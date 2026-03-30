@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-03-29
+
+### Added
+- Added a `Public head scripts` setting in `admin.php` for analytics, AdSense, verification tags, pixels, and other monetization or tracking snippets.
+- Added support for the `VIDEW_PUBLIC_HEAD_SCRIPTS` environment variable in `config/app.php` and `.env.example`.
+
+### Changed
+- Updated public templates to render configurable head markup through `public_head_markup()` in `src/Support/helpers.php`.
+- Kept the head-script injection limited to public-facing pages, excluding admin and installer screens.
+
 ## [0.2.0] - 2026-03-29
 
 ### Added

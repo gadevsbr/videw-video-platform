@@ -87,6 +87,7 @@ $flashSuccess = flash('success');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

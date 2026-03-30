@@ -46,6 +46,7 @@ $flashSuccess = flash('success');
     <title><?= e($billing->planName()); ?> | <?= e(config('app.name')); ?></title>
     <meta name="description" content="<?= e($billing->planCopy()); ?>">
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <?php

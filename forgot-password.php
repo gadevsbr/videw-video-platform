@@ -42,6 +42,7 @@ if (is_post_request()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset password | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
+    <?= public_head_markup(); ?>
 </head>
 <body class="auth-body <?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <main class="auth-layout">

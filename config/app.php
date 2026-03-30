@@ -9,6 +9,7 @@ return [
         'brand_kicker' => (string) env_value('VIDEW_BRAND_KICKER', 'VIDEW'),
         'brand_title' => (string) env_value('VIDEW_BRAND_TITLE', '18+'),
         'exit_url' => (string) env_value('VIDEW_EXIT_URL', 'https://www.google.com'),
+        'public_head_scripts' => (string) env_value('VIDEW_PUBLIC_HEAD_SCRIPTS', ''),
     ],
     'db' => [
         'host' => (string) env_value('VIDEW_DB_HOST', '127.0.0.1'),

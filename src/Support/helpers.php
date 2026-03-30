@@ -171,6 +171,17 @@ function brand_lockup(): string
     return trim(brand_kicker() . ' ' . brand_title());
 }
 
+function public_head_markup(): string
+{
+    $scripts = trim((string) config('app.public_head_scripts', ''));
+
+    if ($scripts === '') {
+        return '';
+    }
+
+    return $scripts . "\n";
+}
+
 function e(?string $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
@@ -619,6 +630,7 @@ function app_settings_to_env_values(array $settings): array
         'VIDEW_BASE_URL' => (string) ($settings['base_url'] ?? config('app.base_url', '')),
         'VIDEW_SUPPORT_EMAIL' => (string) ($settings['support_email'] ?? config('app.support_email', '')),
         'VIDEW_EXIT_URL' => (string) ($settings['exit_url'] ?? config('app.exit_url', 'https://www.google.com')),
+        'VIDEW_PUBLIC_HEAD_SCRIPTS' => (string) ($settings['public_head_scripts'] ?? config('app.public_head_scripts', '')),
         'VIDEW_TIMEZONE' => (string) ($settings['timezone'] ?? env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo')),
     ];
 }
