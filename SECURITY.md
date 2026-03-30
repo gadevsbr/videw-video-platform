@@ -12,7 +12,7 @@ If you discover a vulnerability:
 
 1. Prepare a short report with the affected file or flow.
 2. Include reproduction steps, impact, and any proof-of-concept details that are necessary.
-3. Send the report privately to the project maintainer contact you use for the repository, or another private channel controlled by the maintainer.
+3. Send the report privately to the project maintainer contact you use for the repository, or another private channel controlled by the maintainer. Mail to gadevs2020@gmail.com
 
 When a report is confirmed, the goal is to:
 
