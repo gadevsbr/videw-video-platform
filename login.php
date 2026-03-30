@@ -52,7 +52,7 @@ $flashError = flash('error');
         <section class="auth-intro">
             <span class="eyebrow">ADULT ACCESS</span>
             <h1>Sign in</h1>
-            <p>Use your account to browse the site and manage access.</p>
+            <p>Sign in to watch premium videos and manage your account.</p>
             <a class="text-link" href="<?= e(base_url()); ?>">Back to home</a>
         </section>
         <section class="auth-card">

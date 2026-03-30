@@ -48,6 +48,19 @@ final class VideoSourceService
         throw new RuntimeException('Supported external URLs: direct .mp4/.webm/.m3u8 files or videos from YouTube, Vimeo, and Dailymotion.');
     }
 
+    public function resolvePosterUrl(string $url): string
+    {
+        $normalized = trim($url);
+
+        if ($normalized === '' || !filter_var($normalized, FILTER_VALIDATE_URL)) {
+            throw new RuntimeException('Enter a valid poster URL.');
+        }
+
+        $this->assertAllowedExternalUrl($normalized);
+
+        return $normalized;
+    }
+
     private function isDirectVideoUrl(string $url): bool
     {
         $path = (string) parse_url($url, PHP_URL_PATH);

@@ -61,11 +61,11 @@ if (is_post_request()) {
 
             write_env_file_values(ROOT_PATH . '/.env', storage_settings_to_env_values($storageSettings));
             $settingsRepository->putMany($storageSettings);
-            $auditLogs->record($actorId ?: null, 'storage.saved', 'settings', null, 'Updated storage and Wasabi settings.', [
+            $auditLogs->record($actorId ?: null, 'storage.saved', 'settings', null, 'Updated storage settings.', [
                 'driver' => $storageSettings['upload_driver'],
                 'private_bucket' => $storageSettings['wasabi_private_bucket'],
             ]);
-            flash('success', 'Storage settings saved to .env.');
+            flash('success', 'Storage settings saved.');
         } catch (RuntimeException $exception) {
             flash('error', $exception->getMessage());
         }
@@ -90,12 +90,12 @@ if (is_post_request()) {
             ];
 
             write_env_file_values(ROOT_PATH . '/.env', billing_settings_to_env_values($billingSettings));
-            $auditLogs->record($actorId ?: null, 'billing.saved', 'settings', null, 'Updated Stripe billing settings.', [
+            $auditLogs->record($actorId ?: null, 'billing.saved', 'settings', null, 'Updated payment settings.', [
                 'price_id' => $billingSettings['premium_price_id'],
                 'plan_name' => $billingSettings['premium_plan_name'],
                 'webhook_configured' => $billingSettings['stripe_webhook_secret'] !== '' ? 1 : 0,
             ]);
-            flash('success', 'Stripe billing settings saved to .env.');
+            flash('success', 'Payment settings saved.');
         } catch (RuntimeException $exception) {
             flash('error', $exception->getMessage());
         }
@@ -117,11 +117,11 @@ if (is_post_request()) {
             ];
 
             write_env_file_values(ROOT_PATH . '/.env', app_settings_to_env_values($appSettings));
-            $auditLogs->record($actorId ?: null, 'app.saved', 'settings', null, 'Updated general application settings.', [
+            $auditLogs->record($actorId ?: null, 'app.saved', 'settings', null, 'Updated site settings.', [
                 'app_name' => $appSettings['app_name'],
                 'brand' => $appSettings['brand_kicker'] . ' ' . $appSettings['brand_title'],
             ]);
-            flash('success', 'App settings saved to .env.');
+            flash('success', 'Site settings saved.');
         } catch (RuntimeException $exception) {
             flash('error', $exception->getMessage());
         }
@@ -184,14 +184,14 @@ if (is_post_request()) {
             ];
 
             write_env_file_values(ROOT_PATH . '/.env', legal_settings_to_env_values($legalSettings));
-            $auditLogs->record($actorId ?: null, 'legal.saved', 'settings', null, 'Updated public legal pages, footer links, and cookie notice settings.', [
+            $auditLogs->record($actorId ?: null, 'legal.saved', 'settings', null, 'Updated legal pages, footer links, and cookie notice settings.', [
                 'rules_title' => $legalSettings['rules_title'],
                 'terms_title' => $legalSettings['terms_title'],
                 'privacy_title' => $legalSettings['privacy_title'],
                 'cookies_title' => $legalSettings['cookies_title'],
                 'cookie_notice_enabled' => $legalSettings['cookie_notice_enabled'],
             ]);
-            flash('success', 'Legal content and footer settings saved to .env.');
+            flash('success', 'Legal pages and footer settings saved.');
         } catch (RuntimeException $exception) {
             flash('error', $exception->getMessage());
         }
@@ -207,8 +207,10 @@ if (is_post_request()) {
             'access_level' => trim((string) ($_POST['access_level'] ?? 'free')),
             'duration_minutes' => trim((string) ($_POST['duration_minutes'] ?? '0')),
             'synopsis' => trim((string) ($_POST['synopsis'] ?? '')),
-            'source_mode' => trim((string) ($_POST['source_mode'] ?? 'file')),
+            'source_mode' => trim((string) ($_POST['source_mode'] ?? '')),
             'external_url' => trim((string) ($_POST['external_url'] ?? '')),
+            'poster_source_mode' => trim((string) ($_POST['poster_source_mode'] ?? '')),
+            'poster_external_url' => trim((string) ($_POST['poster_external_url'] ?? '')),
             'is_featured' => (string) ($_POST['is_featured'] ?? ''),
             'moderation_status' => trim((string) ($_POST['moderation_status'] ?? 'draft')),
             'moderation_notes' => trim((string) ($_POST['moderation_notes'] ?? '')),
@@ -572,28 +574,28 @@ $screenMeta = [
     'overview' => [
         'eyebrow' => 'ADMIN',
         'title' => 'Control panel.',
-        'copy' => 'Use one screen for each job: overview, storage, publishing, and library.',
+        'copy' => 'Each screen handles one part of running the site.',
         'primary' => ['label' => 'Open storage', 'href' => $screenUrl('storage')],
         'secondary' => ['label' => 'New video', 'href' => $screenUrl('publish')],
     ],
     'storage' => [
         'eyebrow' => 'STORAGE',
         'title' => 'Upload and delivery settings.',
-        'copy' => 'Pick the upload driver, set Wasabi access, and choose public or signed playback.',
+        'copy' => 'Choose where uploads go and how protected playback is delivered.',
         'primary' => ['label' => 'Back to overview', 'href' => $screenUrl('overview')],
         'secondary' => ['label' => 'Open library', 'href' => $screenUrl('library')],
     ],
     'billing' => [
         'eyebrow' => 'BILLING',
         'title' => 'Premium subscription settings.',
-        'copy' => 'Store Stripe keys in `.env`, define the premium price, and publish the webhook endpoint for shared hosting or VPS.',
+        'copy' => 'Set up Premium pricing, payments, and member access from one place.',
         'primary' => ['label' => 'Back to overview', 'href' => $screenUrl('overview')],
         'secondary' => ['label' => 'Open users', 'href' => $screenUrl('users')],
     ],
     'publish' => [
         'eyebrow' => 'PUBLISH',
         'title' => 'Create a new video.',
-        'copy' => 'Post from local uploads, Wasabi-backed uploads, or supported external URLs.',
+        'copy' => 'Add a new video from an upload or a supported link.',
         'primary' => ['label' => 'Back to overview', 'href' => $screenUrl('overview')],
         'secondary' => ['label' => 'Open library', 'href' => $screenUrl('library')],
     ],
@@ -621,7 +623,7 @@ $screenMeta = [
     'settings' => [
         'eyebrow' => 'SETTINGS',
         'title' => 'General app settings.',
-        'copy' => 'Update branding, support info, URLs, and timezone from the admin panel.',
+        'copy' => 'Update the public name, support details, links, and timezone.',
         'primary' => ['label' => 'Open storage', 'href' => $screenUrl('storage')],
         'secondary' => ['label' => 'Open legal', 'href' => $screenUrl('legal')],
     ],
@@ -640,6 +642,25 @@ $screenMeta = [
         'secondary' => ['label' => 'Open users', 'href' => $screenUrl('users')],
     ],
 ];
+$screenLabels = [
+    'overview' => 'Overview',
+    'storage' => 'Storage',
+    'billing' => 'Billing',
+    'publish' => 'Publish',
+    'library' => 'Library',
+    'moderation' => 'Moderation',
+    'users' => 'Users',
+    'settings' => 'Settings',
+    'legal' => 'Legal',
+    'activity' => 'Activity',
+];
+$adminNavGroups = [
+    'Control center' => ['overview'],
+    'Content' => ['publish', 'library', 'moderation'],
+    'Members and revenue' => ['users', 'billing'],
+    'Site' => ['settings', 'legal'],
+    'System' => ['storage', 'activity'],
+];
 $currentScreen = $screenMeta[$screen];
 ?>
 <!DOCTYPE html>
@@ -652,9 +673,9 @@ $currentScreen = $screenMeta[$screen];
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
     <div class="legal-bar">
-        <span>Admin panel</span>
-        <span>Local or Wasabi uploads</span>
-        <span>External embeds</span>
+        <span>Admin area</span>
+        <span>Library management</span>
+        <span>Site settings</span>
     </div>
     <header class="site-header">
         <a class="brandmark" href="<?= e(base_url()); ?>">
@@ -663,16 +684,9 @@ $currentScreen = $screenMeta[$screen];
         </a>
         <nav class="site-nav">
             <a href="<?= e(base_url()); ?>">Home</a>
-            <a href="<?= e($screenUrl('overview')); ?>">Overview</a>
-            <a href="<?= e($screenUrl('storage')); ?>">Storage</a>
-            <a href="<?= e($screenUrl('billing')); ?>">Billing</a>
-            <a href="<?= e($screenUrl('publish')); ?>">Publish</a>
-            <a href="<?= e($screenUrl('library')); ?>">Library</a>
-            <a href="<?= e($screenUrl('moderation')); ?>">Moderation</a>
-            <a href="<?= e($screenUrl('users')); ?>">Users</a>
-            <a href="<?= e($screenUrl('settings')); ?>">Settings</a>
-            <a href="<?= e($screenUrl('legal')); ?>">Legal</a>
-            <a href="<?= e($screenUrl('activity')); ?>">Activity</a>
+            <a href="<?= e(base_url('browse.php')); ?>">Browse</a>
+            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
+            <a href="<?= e(base_url('support.php')); ?>">Support</a>
             <a href="<?= e(base_url('account.php')); ?>">Account</a>
         </nav>
         <div class="site-nav__actions">
@@ -681,7 +695,7 @@ $currentScreen = $screenMeta[$screen];
         </div>
     </header>
 
-    <main class="page-shell">
+    <main class="page-shell admin-shell">
         <?php if ($flashError): ?>
             <div class="flash flash--error"><?= e((string) $flashError); ?></div>
         <?php endif; ?>
@@ -689,56 +703,65 @@ $currentScreen = $screenMeta[$screen];
             <div class="flash flash--success"><?= e((string) $flashSuccess); ?></div>
         <?php endif; ?>
 
-        <section class="hero admin-hero">
-            <div class="hero__copy">
-                <span class="eyebrow"><?= e($currentScreen['eyebrow']); ?></span>
-                <h1><?= e($currentScreen['title']); ?></h1>
-                <p><?= e($currentScreen['copy']); ?></p>
-                <div class="hero__actions">
-                    <a class="button" href="<?= e($currentScreen['primary']['href']); ?>"><?= e($currentScreen['primary']['label']); ?></a>
-                    <a class="button button--ghost" href="<?= e($currentScreen['secondary']['href']); ?>"><?= e($currentScreen['secondary']['label']); ?></a>
+        <div class="admin-layout">
+            <aside class="admin-sidebar">
+                <div class="admin-sidebar__intro">
+                    <span class="eyebrow">ADMIN</span>
+                    <strong><?= e(config('app.name')); ?></strong>
+                    <p>Use the sidebar to move between content, members, revenue, site, and system jobs.</p>
                 </div>
-                <div class="admin-screen-nav">
-                    <?php foreach ([
-                        'overview' => 'Overview',
-                        'storage' => 'Storage',
-                        'billing' => 'Billing',
-                        'publish' => 'Publish',
-                        'library' => 'Library',
-                        'moderation' => 'Moderation',
-                        'users' => 'Users',
-                        'settings' => 'Settings',
-                        'legal' => 'Legal',
-                        'activity' => 'Activity',
-                    ] as $key => $label): ?>
-                        <a class="<?= $screen === $key ? 'chip chip--active' : 'chip'; ?>" href="<?= e($screenUrl($key)); ?>"><?= e($label); ?></a>
-                    <?php endforeach; ?>
-                </div>
+
                 <?php if (!$dbReady): ?>
                     <div class="notice-card">
-                        <strong>Database offline</strong>
-                        <p>Publishing needs MySQL. Storage settings still save to .env.</p>
+                        <strong>Setup still in progress</strong>
+                        <p>Publishing and user actions will work fully once the site database is available.</p>
                     </div>
                 <?php endif; ?>
-            </div>
-            <aside class="hero__aside admin-hero__aside">
-                <div class="stat-card">
-                    <span class="stat-card__label">Driver</span>
-                    <strong><?= $wasabiEnabled ? 'Wasabi' : 'Local'; ?></strong>
-                    <span>used for new uploads</span>
+
+                <div class="admin-sidebar__status">
+                    <article class="mini-stat">
+                        <span>Upload driver</span>
+                        <strong><?= $wasabiEnabled ? 'Wasabi' : 'Local'; ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Library</span>
+                        <strong><?= e((string) $adminStats['total']); ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Delivery</span>
+                        <strong><?= $privateDelivery ? 'Signed' : 'Public'; ?></strong>
+                    </article>
                 </div>
-                <div class="stat-card">
-                    <span class="stat-card__label">Library</span>
-                    <strong><?= e((string) $adminStats['total']); ?></strong>
-                    <span><?= e((string) $adminStats['approved']); ?> approved items</span>
-                </div>
-                <div class="stat-card">
-                    <span class="stat-card__label">Delivery</span>
-                    <strong><?= $privateDelivery ? 'Signed' : 'Public'; ?></strong>
-                    <span>TTL <?= e((string) ($settings['wasabi_signed_url_ttl_seconds'] ?? '900')); ?>s</span>
-                </div>
+
+                <?php foreach ($adminNavGroups as $groupTitle => $items): ?>
+                    <section class="admin-sidebar__group">
+                        <span class="admin-sidebar__group-title"><?= e($groupTitle); ?></span>
+                        <div class="admin-sidebar__links">
+                            <?php foreach ($items as $key): ?>
+                                <a class="<?= $screen === $key ? 'admin-sidebar__link is-active' : 'admin-sidebar__link'; ?>" href="<?= e($screenUrl($key)); ?>">
+                                    <span><?= e($screenLabels[$key] ?? ucfirst($key)); ?></span>
+                                    <?php if ($screen === $key): ?>
+                                        <span class="pill">Open</span>
+                                    <?php endif; ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endforeach; ?>
             </aside>
-        </section>
+
+            <div class="admin-main">
+                <section class="admin-page-header">
+                    <div class="admin-page-header__copy">
+                        <span class="eyebrow"><?= e($currentScreen['eyebrow']); ?></span>
+                        <h1><?= e($currentScreen['title']); ?></h1>
+                        <p><?= e($currentScreen['copy']); ?></p>
+                    </div>
+                    <div class="admin-page-header__actions">
+                        <a class="button" href="<?= e($currentScreen['primary']['href']); ?>"><?= e($currentScreen['primary']['label']); ?></a>
+                        <a class="button button--ghost" href="<?= e($currentScreen['secondary']['href']); ?>"><?= e($currentScreen['secondary']['label']); ?></a>
+                    </div>
+                </section>
 
         <?php if ($screen === 'overview'): ?>
             <section class="catalog-section">
@@ -752,26 +775,26 @@ $currentScreen = $screenMeta[$screen];
                 <div class="admin-overview-grid">
                     <a class="admin-link-card" href="<?= e($screenUrl('storage')); ?>">
                         <span class="eyebrow">STORAGE</span>
-                        <strong>Upload driver and Wasabi access</strong>
-                        <p>Switch between local and Wasabi, then tune signed playback and multipart uploads.</p>
+                        <strong>Uploads and delivery</strong>
+                        <p>Choose where files are stored and how protected playback works.</p>
                         <span class="text-link">Open storage</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('billing')); ?>">
                         <span class="eyebrow">BILLING</span>
-                        <strong>Stripe keys and premium access</strong>
-                        <p>Set the Stripe secrets, premium price ID, webhook secret, and public plan copy.</p>
+                        <strong>Plans and payments</strong>
+                        <p>Set up Premium pricing, secure checkout, and member access.</p>
                         <span class="text-link">Open billing</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('publish')); ?>">
                         <span class="eyebrow">PUBLISH</span>
-                        <strong>New uploads and external URLs</strong>
-                        <p>Create new items from files, direct media URLs, or supported embed links.</p>
+                        <strong>Add new videos</strong>
+                        <p>Create new items from uploads or supported links.</p>
                         <span class="text-link">Open publish</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('library')); ?>">
                         <span class="eyebrow">LIBRARY</span>
-                        <strong>Recent items and delivery status</strong>
-                        <p>Check which items are featured, which are using Wasabi, and which are external.</p>
+                        <strong>Library management</strong>
+                        <p>See what is live, featured, or ready for changes.</p>
                         <span class="text-link">Open library</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('moderation')); ?>">
@@ -788,8 +811,8 @@ $currentScreen = $screenMeta[$screen];
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('settings')); ?>">
                         <span class="eyebrow">SETTINGS</span>
-                        <strong>Branding and deployment values</strong>
-                        <p>Update app branding, support email, URLs and timezone through `.env`.</p>
+                        <strong>Branding and contact</strong>
+                        <p>Update the public site name, support email, links, and timezone.</p>
                         <span class="text-link">Open settings</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('legal')); ?>">
@@ -863,7 +886,7 @@ $currentScreen = $screenMeta[$screen];
                         <span class="eyebrow">STORAGE</span>
                         <h2>Upload driver and delivery</h2>
                     </div>
-                    <p>External URLs skip the upload driver and stay marked as external.</p>
+                    <p>Choose where uploaded files live and how protected playback is delivered.</p>
                 </div>
                 <div class="admin-screen-grid">
                     <form method="post" class="admin-form-shell">
@@ -873,18 +896,18 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Upload driver</h3>
-                                <p>Choose where new uploaded files will be stored.</p>
+                                <p>Choose where new video and poster files will be saved.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
                                     <span>Driver</span>
                                     <select name="upload_driver">
-                                        <option value="local" <?= ($settings['upload_driver'] ?? 'local') === 'local' ? 'selected' : ''; ?>>Local hosting</option>
-                                        <option value="wasabi" <?= ($settings['upload_driver'] ?? '') === 'wasabi' ? 'selected' : ''; ?>>Wasabi API</option>
+                                        <option value="local" <?= ($settings['upload_driver'] ?? 'local') === 'local' ? 'selected' : ''; ?>>This server</option>
+                                        <option value="wasabi" <?= ($settings['upload_driver'] ?? '') === 'wasabi' ? 'selected' : ''; ?>>Wasabi cloud storage</option>
                                     </select>
                                 </label>
                                 <label>
-                                    <span>Path prefix</span>
+                                    <span>Folder prefix</span>
                                     <input type="text" name="wasabi_path_prefix" value="<?= e((string) ($settings['wasabi_path_prefix'] ?? 'videw')); ?>" placeholder="videw">
                                 </label>
                             </div>
@@ -893,7 +916,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Wasabi connection</h3>
-                                <p>Set the endpoint, bucket, and credentials used for Wasabi uploads.</p>
+                                <p>Enter the bucket details used for Wasabi uploads.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -926,12 +949,12 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Delivery rules</h3>
-                                <p>Control signed URLs and multipart upload thresholds.</p>
+                                <p>Choose whether Wasabi files stay public or open through time-limited links.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label class="checkbox-line">
                                     <input type="checkbox" name="wasabi_private_bucket" value="1" <?= ($settings['wasabi_private_bucket'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                    <span>Private bucket with signed playback URLs</span>
+                                    <span>Keep the bucket private and use time-limited playback links</span>
                                 </label>
                                 <div class="admin-empty-slot"></div>
                                 <label>
@@ -949,7 +972,7 @@ $currentScreen = $screenMeta[$screen];
                             </div>
                         </section>
 
-                        <button class="button" type="submit">Save settings</button>
+                        <button class="button" type="submit">Save storage settings</button>
                     </form>
 
                     <div class="admin-sidebar-stack">
@@ -957,32 +980,32 @@ $currentScreen = $screenMeta[$screen];
                             <div class="admin-guide__header">
                                 <span class="eyebrow">HOW IT WORKS</span>
                                 <h3>Storage flow</h3>
-                                <p>The guide now sits in its own block with more spacing and clearer steps.</p>
+                                <p>A quick guide to how uploads and playback work on the site.</p>
                             </div>
                             <div class="admin-steps">
                                 <article class="admin-step">
-                                    <strong>Local</strong>
-                                    <p>Stores uploaded files inside `storage/uploads` on the hosting server.</p>
+                                    <strong>This server</strong>
+                                    <p>Uploaded files stay on the same hosting account as your site.</p>
                                 </article>
                                 <article class="admin-step">
                                     <strong>Wasabi</strong>
-                                    <p>Sends uploaded files to your S3-compatible Wasabi bucket using the saved credentials.</p>
+                                    <p>Uploaded files are sent to your Wasabi bucket using the saved connection details.</p>
                                 </article>
                                 <article class="admin-step">
-                                    <strong>.env</strong>
-                                    <p>Credentials and storage values are saved to `/.env` from the admin panel.</p>
+                                    <strong>Private settings</strong>
+                                    <p>Connection details are saved privately for your site and do not appear on the public pages.</p>
                                 </article>
                                 <article class="admin-step">
                                     <strong>Multipart</strong>
-                                    <p>Large files are split into parts, uploaded separately, and completed in the bucket.</p>
+                                    <p>Large files are uploaded in parts to make big transfers more reliable.</p>
                                 </article>
                                 <article class="admin-step">
                                     <strong>Private playback</strong>
-                                    <p>When the bucket is private, posters and videos are served with signed URLs.</p>
+                                    <p>When the bucket is private, videos and posters open through protected time-limited links.</p>
                                 </article>
                                 <article class="admin-step">
-                                    <strong>External URL</strong>
-                                    <p>Direct `.mp4/.webm/.m3u8` links and YouTube, Vimeo, or Dailymotion embeds stay marked as external.</p>
+                                    <strong>External link</strong>
+                                    <p>You can also publish supported video links without uploading a file.</p>
                                 </article>
                             </div>
                         </article>
@@ -1004,9 +1027,9 @@ $currentScreen = $screenMeta[$screen];
                 <div class="section-heading">
                     <div>
                         <span class="eyebrow">BILLING</span>
-                        <h2>Stripe and Premium plan</h2>
+                        <h2>Premium plan and payments</h2>
                     </div>
-                    <p>Hosted Checkout for upgrades, Billing Portal for self-service, and webhooks for account sync.</p>
+                    <p>Set the Premium offer, connect payments, and control member access.</p>
                 </div>
                 <div class="admin-screen-grid">
                     <form method="post" class="admin-form-shell">
@@ -1015,8 +1038,8 @@ $currentScreen = $screenMeta[$screen];
 
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
-                                <h3>Stripe credentials</h3>
-                                <p>Keep live or test credentials out of the repository and write them into `.env` from the admin panel.</p>
+                                <h3>Payment connection</h3>
+                                <p>Add your payment keys here. Leave secret fields empty if you want to keep the current values.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -1024,12 +1047,12 @@ $currentScreen = $screenMeta[$screen];
                                     <input type="password" name="stripe_secret_key" value="" placeholder="<?= trim((string) $billingSettings['stripe_secret_key']) !== '' ? 'Leave blank to keep current secret key' : 'sk_live_...'; ?>" autocomplete="new-password">
                                 </label>
                                 <label>
-                                    <span>Publishable key</span>
+                                    <span>Public key</span>
                                     <input type="text" name="stripe_publishable_key" value="<?= e($billingSettings['stripe_publishable_key']); ?>" placeholder="pk_live_...">
                                 </label>
                                 <label>
-                                    <span>Webhook signing secret</span>
-                                    <input type="password" name="stripe_webhook_secret" value="" placeholder="<?= trim((string) $billingSettings['stripe_webhook_secret']) !== '' ? 'Leave blank to keep current webhook secret' : 'whsec_...'; ?>" autocomplete="new-password">
+                                    <span>Event signing secret</span>
+                                    <input type="password" name="stripe_webhook_secret" value="" placeholder="<?= trim((string) $billingSettings['stripe_webhook_secret']) !== '' ? 'Leave blank to keep the current signing secret' : 'whsec_...'; ?>" autocomplete="new-password">
                                 </label>
                                 <label>
                                     <span>Premium price ID</span>
@@ -1065,48 +1088,48 @@ $currentScreen = $screenMeta[$screen];
                             </div>
                         </section>
 
-                        <button class="button" type="submit">Save billing settings</button>
+                        <button class="button" type="submit">Save payment settings</button>
                     </form>
 
                     <div class="admin-sidebar-stack">
                         <article class="admin-guide">
                             <div class="admin-guide__header">
-                                <span class="eyebrow">CHECKOUT FLOW</span>
+                                <span class="eyebrow">PREMIUM FLOW</span>
                                 <h3>How Premium works</h3>
-                                <p>The site uses Stripe Hosted Checkout and the Stripe Billing Portal, which fit shared hosting and VPS deployments well.</p>
+                                <p>This is the path your members follow from free access to Premium.</p>
                             </div>
                             <div class="admin-steps">
                                 <article class="admin-step">
-                                    <strong>1. Create product and price</strong>
-                                    <p>Create the recurring Premium product in Stripe Dashboard, then paste the `price_...` ID here.</p>
+                                    <strong>1. Create the plan</strong>
+                                    <p>Create the recurring Premium plan in Stripe, then paste the price ID here.</p>
                                 </article>
                                 <article class="admin-step">
-                                    <strong>2. Save secrets in .env</strong>
-                                    <p>The admin form writes keys and billing copy into `/.env` so the public repository stays clean.</p>
+                                    <strong>2. Save your keys</strong>
+                                    <p>Add your payment keys and plan copy on this screen.</p>
                                 </article>
                                 <article class="admin-step">
-                                    <strong>3. Configure the webhook</strong>
-                                    <p>Point Stripe to the endpoint below and subscribe at least to `checkout.session.completed`, `invoice.paid`, and `invoice.payment_failed`.</p>
+                                    <strong>3. Connect automatic updates</strong>
+                                    <p>Add the event URL below in Stripe so successful payments, renewals, and cancellations update member access automatically.</p>
                                 </article>
                                 <article class="admin-step">
                                     <strong>4. Gate playback</strong>
-                                    <p>`Free` videos play for everyone. `Premium` videos require a logged-in account with an active Stripe-backed Premium tier.</p>
+                                    <p>Videos marked Premium will play only for signed-in members with an active Premium plan.</p>
                                 </article>
                             </div>
                         </article>
 
                         <article class="compliance-card">
                             <h3>Configuration status</h3>
-                            <p><strong>Billing ready:</strong> <?= $billingConfigured ? 'Yes' : 'No'; ?></p>
-                            <p><strong>Webhook ready:</strong> <?= $webhookConfigured ? 'Yes' : 'No'; ?></p>
+                            <p><strong>Payments ready:</strong> <?= $billingConfigured ? 'Yes' : 'No'; ?></p>
+                            <p><strong>Automatic updates ready:</strong> <?= $webhookConfigured ? 'Yes' : 'No'; ?></p>
                             <p><strong>Plans page:</strong> <a class="text-link" href="<?= e(base_url('premium.php')); ?>" target="_blank" rel="noreferrer">Open public premium page</a></p>
                         </article>
 
                         <article class="compliance-card">
-                            <h3>Webhook endpoint</h3>
-                            <p>Use this URL in Stripe Workbench or the Dashboard webhook settings:</p>
+                            <h3>Automatic updates URL</h3>
+                            <p>Add this URL in Stripe so payments and renewals update accounts automatically:</p>
                             <code><?= e($webhookUrl); ?></code>
-                            <p class="form-note">Use HTTPS in production and keep `VIDEW_BASE_URL` pointed at the real domain.</p>
+                            <p class="form-note">Use your real site URL here.</p>
                         </article>
                     </div>
                 </div>
@@ -1123,7 +1146,7 @@ $currentScreen = $screenMeta[$screen];
                     <p>Use files or supported external sources.</p>
                 </div>
                 <div class="admin-screen-grid">
-                    <form method="post" enctype="multipart/form-data" class="admin-form-shell">
+                    <form method="post" enctype="multipart/form-data" class="admin-form-shell" data-media-source-form>
                         <input type="hidden" name="action" value="publish_video">
                         <?= csrf_input('admin'); ?>
 
@@ -1191,28 +1214,51 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Media source</h3>
-                                <p>Use one of the supported source modes below.</p>
+                                <p>Start by choosing how you want to add the video and the poster.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
-                                    <span>Source</span>
-                                    <select name="source_mode">
-                                        <option value="file" <?= old('source_mode', 'file') === 'file' ? 'selected' : ''; ?>>File upload</option>
+                                    <span>Video source</span>
+                                    <select name="source_mode" data-media-switch="video">
+                                        <option value="" <?= old('source_mode', '') === '' ? 'selected' : ''; ?>>Choose how to add the video</option>
+                                        <option value="file" <?= old('source_mode') === 'file' ? 'selected' : ''; ?>>Upload a file</option>
                                         <option value="url" <?= old('source_mode') === 'url' ? 'selected' : ''; ?>>External URL</option>
                                     </select>
                                 </label>
                                 <label>
-                                    <span>External URL</span>
-                                    <input type="url" name="external_url" value="<?= e(old('external_url')); ?>" placeholder="https://...">
+                                    <span>Poster source</span>
+                                    <select name="poster_source_mode" data-media-switch="poster">
+                                        <option value="" <?= old('poster_source_mode', '') === '' ? 'selected' : ''; ?>>Use fallback artwork</option>
+                                        <option value="upload" <?= old('poster_source_mode') === 'upload' ? 'selected' : ''; ?>>Upload an image</option>
+                                        <option value="url" <?= old('poster_source_mode') === 'url' ? 'selected' : ''; ?>>Poster URL</option>
+                                    </select>
                                 </label>
-                                <label>
-                                    <span>Video file</span>
-                                    <input type="file" name="video_file" accept="video/*">
-                                </label>
-                                <label>
-                                    <span>Poster image</span>
-                                    <input type="file" name="poster_file" accept="image/*">
-                                </label>
+                            </div>
+                            <div class="admin-fields admin-fields--two">
+                                <div class="admin-conditional-field" data-media-group="video" data-media-mode="url" style="<?= old('source_mode') === 'url' ? '' : 'display:none;'; ?>">
+                                    <label>
+                                        <span>Video URL</span>
+                                        <input type="url" name="external_url" value="<?= e(old('external_url')); ?>" placeholder="https://...">
+                                    </label>
+                                </div>
+                                <div class="admin-conditional-field" data-media-group="video" data-media-mode="file" style="<?= old('source_mode') === 'file' ? '' : 'display:none;'; ?>">
+                                    <label>
+                                        <span>Video file</span>
+                                        <input type="file" name="video_file" accept="video/*">
+                                    </label>
+                                </div>
+                                <div class="admin-conditional-field" data-media-group="poster" data-media-mode="upload" style="<?= old('poster_source_mode') === 'upload' ? '' : 'display:none;'; ?>">
+                                    <label>
+                                        <span>Poster image</span>
+                                        <input type="file" name="poster_file" accept="image/*">
+                                    </label>
+                                </div>
+                                <div class="admin-conditional-field" data-media-group="poster" data-media-mode="url" style="<?= old('poster_source_mode') === 'url' ? '' : 'display:none;'; ?>">
+                                    <label>
+                                        <span>Poster URL</span>
+                                        <input type="url" name="poster_external_url" value="<?= e(old('poster_external_url')); ?>" placeholder="https://...">
+                                    </label>
+                                </div>
                             </div>
                         </section>
 
@@ -1237,7 +1283,7 @@ $currentScreen = $screenMeta[$screen];
                                 </article>
                                 <article class="admin-step">
                                     <strong>Poster</strong>
-                                    <p>Add a custom poster if you do not want the built-in fallback artwork.</p>
+                                    <p>Choose whether to upload a poster, link to one, or keep the default artwork.</p>
                                 </article>
                                 <article class="admin-step">
                                     <strong>Featured</strong>
@@ -1250,7 +1296,7 @@ $currentScreen = $screenMeta[$screen];
                             <h3>Current defaults</h3>
                             <p><strong>Upload driver:</strong> <?= $wasabiEnabled ? 'Wasabi' : 'Local'; ?></p>
                             <p><strong>Playback:</strong> <?= $privateDelivery ? 'Signed URLs' : 'Public delivery'; ?></p>
-                            <p><strong>Database:</strong> <?= $dbReady ? 'Ready' : 'Offline'; ?></p>
+                            <p><strong>Site data:</strong> <?= $dbReady ? 'Ready' : 'Not connected'; ?></p>
                         </article>
                     </div>
                 </div>
@@ -1340,7 +1386,7 @@ $currentScreen = $screenMeta[$screen];
 
                 <?php if ($editingVideo): ?>
                     <div class="admin-screen-grid">
-                        <form method="post" enctype="multipart/form-data" class="admin-form-shell">
+                        <form method="post" enctype="multipart/form-data" class="admin-form-shell" data-media-source-form>
                             <input type="hidden" name="action" value="update_video">
                             <input type="hidden" name="video_id" value="<?= e((string) $editingVideo['id']); ?>">
                             <?= csrf_input('admin'); ?>
@@ -1376,9 +1422,10 @@ $currentScreen = $screenMeta[$screen];
                                     </label>
                                     <label>
                                         <span>Source</span>
-                                        <select name="source_mode">
-                                            <option value="file" <?= (string) $editingVideo['source_type'] === 'upload' ? 'selected' : ''; ?>>File upload</option>
-                                            <option value="url" <?= (string) $editingVideo['source_type'] !== 'upload' ? 'selected' : ''; ?>>External URL</option>
+                                        <select name="source_mode" data-media-switch="video">
+                                            <option value="" <?= !isset($_POST['source_mode']) ? 'selected' : ''; ?>>Keep current video</option>
+                                            <option value="file" <?= (string) ($_POST['source_mode'] ?? '') === 'file' ? 'selected' : ''; ?>>Upload a new file</option>
+                                            <option value="url" <?= (string) ($_POST['source_mode'] ?? '') === 'url' ? 'selected' : ''; ?>>Use a video URL</option>
                                         </select>
                                     </label>
                                 </div>
@@ -1414,25 +1461,47 @@ $currentScreen = $screenMeta[$screen];
                             <section class="admin-form-section">
                                 <div class="admin-form-section__header">
                                     <h3>Replace media</h3>
-                                    <p>Leave upload fields empty to keep the current media.</p>
+                                    <p>Choose what you want to replace. If you keep the current option selected, nothing changes.</p>
                                 </div>
                                 <div class="admin-fields admin-fields--two">
                                     <label>
-                                        <span>External URL</span>
-                                        <input type="url" name="external_url" value="<?= e((string) ($editingVideo['original_source_url'] ?? '')); ?>" placeholder="https://...">
-                                    </label>
-                                    <label>
-                                        <span>Video file</span>
-                                        <input type="file" name="video_file" accept="video/*">
-                                    </label>
-                                    <label>
-                                        <span>Poster image</span>
-                                        <input type="file" name="poster_file" accept="image/*">
+                                        <span>Poster source</span>
+                                        <select name="poster_source_mode" data-media-switch="poster">
+                                            <option value="" <?= !isset($_POST['poster_source_mode']) ? 'selected' : ''; ?>>Keep current poster</option>
+                                            <option value="upload" <?= (string) ($_POST['poster_source_mode'] ?? '') === 'upload' ? 'selected' : ''; ?>>Upload a new image</option>
+                                            <option value="url" <?= (string) ($_POST['poster_source_mode'] ?? '') === 'url' ? 'selected' : ''; ?>>Use a poster URL</option>
+                                        </select>
                                     </label>
                                     <label class="checkbox-line">
                                         <input type="checkbox" name="remove_poster" value="1">
                                         <span>Remove current poster and use the fallback art</span>
                                     </label>
+                                </div>
+                                <div class="admin-fields admin-fields--two">
+                                    <div class="admin-conditional-field" data-media-group="video" data-media-mode="url" style="<?= (string) ($_POST['source_mode'] ?? '') === 'url' ? '' : 'display:none;'; ?>">
+                                        <label>
+                                            <span>Video URL</span>
+                                            <input type="url" name="external_url" value="<?= e((string) ($_POST['external_url'] ?? ($editingVideo['original_source_url'] ?? ''))); ?>" placeholder="https://...">
+                                        </label>
+                                    </div>
+                                    <div class="admin-conditional-field" data-media-group="video" data-media-mode="file" style="<?= (string) ($_POST['source_mode'] ?? '') === 'file' ? '' : 'display:none;'; ?>">
+                                        <label>
+                                            <span>Video file</span>
+                                            <input type="file" name="video_file" accept="video/*">
+                                        </label>
+                                    </div>
+                                    <div class="admin-conditional-field" data-media-group="poster" data-media-mode="upload" style="<?= (string) ($_POST['poster_source_mode'] ?? '') === 'upload' ? '' : 'display:none;'; ?>">
+                                        <label>
+                                            <span>Poster image</span>
+                                            <input type="file" name="poster_file" accept="image/*">
+                                        </label>
+                                    </div>
+                                    <div class="admin-conditional-field" data-media-group="poster" data-media-mode="url" style="<?= (string) ($_POST['poster_source_mode'] ?? '') === 'url' ? '' : 'display:none;'; ?>">
+                                        <label>
+                                            <span>Poster URL</span>
+                                            <input type="url" name="poster_external_url" value="<?= e((string) ($_POST['poster_external_url'] ?? (empty($editingVideo['poster_path']) ? ($editingVideo['stored_poster_url'] ?? '') : ''))); ?>" placeholder="https://...">
+                                        </label>
+                                    </div>
                                 </div>
                             </section>
                             <button class="button" type="submit">Save changes</button>
@@ -1581,42 +1650,49 @@ $currentScreen = $screenMeta[$screen];
                         <p>Pick another status filter or publish a new draft.</p>
                     </div>
                 <?php else: ?>
-                    <div class="admin-list">
+                    <div class="admin-worklist">
                         <?php foreach ($moderationVideos as $video): ?>
-                            <article class="admin-list-item">
-                                <div class="admin-list-item__media">
+                            <article class="admin-workrow">
+                                <label class="bulk-select">
+                                    <input type="checkbox" name="video_ids[]" value="<?= e((string) $video['id']); ?>" form="moderation-bulk-form">
+                                    <span>Select</span>
+                                </label>
+                                <div class="admin-workrow__thumb">
                                     <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
                                 </div>
-                                <div class="admin-list-item__body">
-                                    <label class="bulk-select">
-                                        <input type="checkbox" name="video_ids[]" value="<?= e((string) $video['id']); ?>" form="moderation-bulk-form">
-                                        <span>Select</span>
-                                    </label>
-                                    <div class="meta-row">
-                                        <span class="pill"><?= e($video['category']); ?></span>
-                                        <span class="pill pill--muted"><?= e((string) $video['moderation_label']); ?></span>
+                                <div class="admin-workrow__main">
+                                    <div class="admin-workrow__header">
+                                        <div class="meta-row">
+                                            <span class="pill"><?= e($video['category']); ?></span>
+                                            <span class="pill pill--muted"><?= e((string) $video['moderation_label']); ?></span>
+                                            <span class="pill pill--muted"><?= e((string) $video['access_label']); ?></span>
+                                        </div>
+                                        <h3><?= e($video['title']); ?></h3>
                                     </div>
-                                    <h3><?= e($video['title']); ?></h3>
-                                    <p><?= e($video['creator_name']); ?> / <?= e($video['duration_label']); ?> / <?= e((string) $video['storage_provider']); ?></p>
-                                    <form method="post" class="admin-inline-form">
-                                        <input type="hidden" name="action" value="moderate_video">
-                                        <input type="hidden" name="video_id" value="<?= e((string) $video['id']); ?>">
-                                        <?= csrf_input('admin'); ?>
-                                        <label>
-                                            <span>Status</span>
-                                            <select name="moderation_status">
-                                                <?php foreach (['draft' => 'Draft', 'approved' => 'Approved', 'flagged' => 'Flagged'] as $value => $label): ?>
-                                                    <option value="<?= e($value); ?>" <?= (string) $video['moderation_status'] === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </label>
-                                        <label>
-                                            <span>Notes</span>
-                                            <textarea name="moderation_notes" rows="3"><?= e((string) $video['moderation_notes']); ?></textarea>
-                                        </label>
-                                        <button class="button" type="submit">Save moderation</button>
-                                    </form>
+                                    <p class="admin-workrow__summary"><?= e($video['creator_name']); ?> / <?= e($video['duration_label']); ?> / <?= e((string) $video['storage_provider']); ?></p>
+                                    <div class="admin-workrow__meta">
+                                        <span class="form-note">Source: <?= e((string) $video['source_type']); ?></span>
+                                        <span class="form-note">Published: <?= e((string) ($video['published_label'] ?? 'No date')); ?></span>
+                                    </div>
                                 </div>
+                                <form method="post" class="admin-workrow__form">
+                                    <input type="hidden" name="action" value="moderate_video">
+                                    <input type="hidden" name="video_id" value="<?= e((string) $video['id']); ?>">
+                                    <?= csrf_input('admin'); ?>
+                                    <label>
+                                        <span>Status</span>
+                                        <select name="moderation_status">
+                                            <?php foreach (['draft' => 'Draft', 'approved' => 'Approved', 'flagged' => 'Flagged'] as $value => $label): ?>
+                                                <option value="<?= e($value); ?>" <?= (string) $video['moderation_status'] === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Notes</span>
+                                        <textarea name="moderation_notes" rows="3"><?= e((string) $video['moderation_notes']); ?></textarea>
+                                    </label>
+                                    <button class="button" type="submit">Save moderation</button>
+                                </form>
                             </article>
                         <?php endforeach; ?>
                     </div>
@@ -1680,47 +1756,47 @@ $currentScreen = $screenMeta[$screen];
                         <p>Try a different search or create a new account from the public register page.</p>
                     </div>
                 <?php else: ?>
-                    <div class="admin-list">
+                    <div class="admin-worklist">
                         <?php foreach ($users as $managedUser): ?>
-                            <article class="admin-list-item">
-                                <div class="admin-list-item__body">
-                                <div class="meta-row">
-                                    <span class="pill"><?= e((string) $managedUser['role']); ?></span>
-                                    <span class="pill pill--muted"><?= e(user_status_label((string) ($managedUser['status'] ?? 'active'))); ?></span>
-                                    <span class="pill"><?= e(account_tier_label((string) ($managedUser['account_tier'] ?? 'free'))); ?></span>
-                                    <?php if ((int) ($managedUser['mfa_enabled'] ?? 0) === 1): ?>
-                                        <span class="pill">2FA</span>
-                                    <?php endif; ?>
-                                </div>
-                                <h3><?= e((string) $managedUser['display_name']); ?></h3>
-                                <p><?= e((string) $managedUser['email']); ?></p>
+                            <article class="admin-user-row">
+                                <div class="admin-user-row__main">
+                                    <div class="admin-user-row__meta">
+                                        <span class="pill"><?= e((string) $managedUser['role']); ?></span>
+                                        <span class="pill pill--muted"><?= e(user_status_label((string) ($managedUser['status'] ?? 'active'))); ?></span>
+                                        <span class="pill"><?= e(account_tier_label((string) ($managedUser['account_tier'] ?? 'free'))); ?></span>
+                                        <?php if ((int) ($managedUser['mfa_enabled'] ?? 0) === 1): ?>
+                                            <span class="pill">2FA</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <h3><?= e((string) $managedUser['display_name']); ?></h3>
+                                    <p><?= e((string) $managedUser['email']); ?></p>
                                     <?php if (!empty($managedUser['stripe_subscription_status'])): ?>
-                                        <p class="form-note">Stripe status: <?= e(subscription_status_label((string) $managedUser['stripe_subscription_status'])); ?></p>
+                                        <p class="form-note">Membership status: <?= e(subscription_status_label((string) $managedUser['stripe_subscription_status'])); ?></p>
                                     <?php endif; ?>
                                     <p class="form-note">Joined <?= e(format_datetime((string) ($managedUser['created_at'] ?? null))); ?><?php if (!empty($managedUser['last_login_at'])): ?> / Last login <?= e(format_datetime((string) $managedUser['last_login_at'])); ?><?php endif; ?></p>
-                                    <form method="post" class="admin-inline-form admin-inline-form--compact">
-                                        <input type="hidden" name="action" value="update_user">
-                                        <input type="hidden" name="user_id" value="<?= e((string) $managedUser['id']); ?>">
-                                        <?= csrf_input('admin'); ?>
-                                        <label>
-                                            <span>Role</span>
-                                            <select name="role">
-                                                <?php foreach (['member' => 'Member', 'creator' => 'Creator', 'admin' => 'Admin'] as $value => $label): ?>
-                                                    <option value="<?= e($value); ?>" <?= (string) $managedUser['role'] === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </label>
-                                        <label>
-                                            <span>Status</span>
-                                            <select name="status">
-                                                <?php foreach (['active' => 'Active', 'suspended' => 'Suspended'] as $value => $label): ?>
-                                                    <option value="<?= e($value); ?>" <?= (string) ($managedUser['status'] ?? 'active') === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        </label>
-                                        <button class="button" type="submit">Save user</button>
-                                    </form>
                                 </div>
+                                <form method="post" class="admin-user-row__form">
+                                    <input type="hidden" name="action" value="update_user">
+                                    <input type="hidden" name="user_id" value="<?= e((string) $managedUser['id']); ?>">
+                                    <?= csrf_input('admin'); ?>
+                                    <label>
+                                        <span>Role</span>
+                                        <select name="role">
+                                            <?php foreach (['member' => 'Member', 'creator' => 'Creator', 'admin' => 'Admin'] as $value => $label): ?>
+                                                <option value="<?= e($value); ?>" <?= (string) $managedUser['role'] === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Status</span>
+                                        <select name="status">
+                                            <?php foreach (['active' => 'Active', 'suspended' => 'Suspended'] as $value => $label): ?>
+                                                <option value="<?= e($value); ?>" <?= (string) ($managedUser['status'] ?? 'active') === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <button class="button" type="submit">Save user</button>
+                                </form>
                             </article>
                         <?php endforeach; ?>
                     </div>
@@ -1742,7 +1818,7 @@ $currentScreen = $screenMeta[$screen];
                         <span class="eyebrow">SETTINGS</span>
                         <h2>General application settings</h2>
                     </div>
-                    <p>These values are saved back into `.env` for deployment consistency.</p>
+                    <p>Update the public name, support details, and main site links.</p>
                 </div>
                 <div class="admin-screen-grid">
                     <form method="post" class="admin-form-shell">
@@ -1796,12 +1872,12 @@ $currentScreen = $screenMeta[$screen];
                                 </label>
                             </div>
                         </section>
-                        <button class="button" type="submit">Save app settings</button>
+                        <button class="button" type="submit">Save site settings</button>
                     </form>
                     <div class="admin-sidebar-stack">
                         <article class="compliance-card">
-                            <h3>Managed in .env</h3>
-                            <p>General branding and deployment-facing settings stay in `.env` so the public repository never stores live values.</p>
+                            <h3>Private site settings</h3>
+                            <p>These details are saved privately for this site and are not shown on the public pages.</p>
                         </article>
                     </div>
                 </div>
@@ -1815,7 +1891,7 @@ $currentScreen = $screenMeta[$screen];
                         <span class="eyebrow">LEGAL</span>
                         <h2>Public legal pages and footer content</h2>
                     </div>
-                    <p>Everything here is written back to `.env` for safe public-repo workflows.</p>
+                    <p>Edit the pages and footer links visitors see across the site.</p>
                 </div>
                 <div class="admin-screen-grid">
                     <form method="post" class="admin-form-shell">
@@ -1910,7 +1986,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Rules page</h3>
-                                <p>Move the platform rules out of the homepage and keep them on their own page.</p>
+                                <p>Keep the rules page clear and easy to understand for visitors.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -1967,7 +2043,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Terms page</h3>
-                                <p>Use plain text with blank lines to split paragraphs.</p>
+                                <p>Write this in plain language for visitors.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -1992,7 +2068,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Privacy page</h3>
-                                <p>Keep the privacy explanation editable for public publishing.</p>
+                                <p>Explain privacy in simple language visitors can understand.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -2017,7 +2093,7 @@ $currentScreen = $screenMeta[$screen];
                         <section class="admin-form-section">
                             <div class="admin-form-section__header">
                                 <h3>Cookies page and banner</h3>
-                                <p>Control both the cookie policy page and the cookie notice shown on public pages.</p>
+                                <p>Control both the cookie page and the banner shown on public pages.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -2038,7 +2114,7 @@ $currentScreen = $screenMeta[$screen];
                                 </label>
                                 <label class="checkbox-line">
                                     <input type="checkbox" name="cookie_notice_enabled" value="1" <?= $legalSettings['cookie_notice_enabled'] === '1' ? 'checked' : ''; ?>>
-                                    <span>Enable the cookie notice banner on public pages.</span>
+                                    <span>Show the cookie notice banner on public pages.</span>
                                 </label>
                                 <div class="admin-empty-slot"></div>
                                 <label>
@@ -2064,12 +2140,12 @@ $currentScreen = $screenMeta[$screen];
                             </div>
                         </section>
 
-                        <button class="button" type="submit">Save legal settings</button>
+                        <button class="button" type="submit">Save legal pages and footer</button>
                     </form>
                     <div class="admin-sidebar-stack">
                         <article class="compliance-card">
-                            <h3>Managed in .env</h3>
-                            <p>Footer copy, policy text, and cookie notice settings are stored in `.env` so you can keep the repository public without shipping live values inside templates.</p>
+                            <h3>Private site settings</h3>
+                            <p>Footer copy, policies, and cookie notice text are saved privately for this site.</p>
                         </article>
                         <article class="compliance-card">
                             <h3>Public previews</h3>
@@ -2128,19 +2204,22 @@ $currentScreen = $screenMeta[$screen];
                         <p>Admin actions will start appearing here after the first changes are saved.</p>
                     </div>
                 <?php else: ?>
-                    <div class="admin-list">
+                    <div class="admin-worklist">
                         <?php foreach ($activityItems as $item): ?>
-                            <article class="admin-list-item">
-                                <div class="admin-list-item__body">
-                                    <div class="meta-row">
+                            <article class="admin-activity-row">
+                                <div class="admin-activity-row__main">
+                                    <div class="admin-activity-row__meta">
                                         <span class="pill"><?= e((string) $item['action']); ?></span>
                                         <span class="pill pill--muted"><?= e((string) $item['target_type']); ?><?php if (!empty($item['target_id'])): ?> #<?= e((string) $item['target_id']); ?><?php endif; ?></span>
                                     </div>
                                     <h3><?= e((string) $item['summary']); ?></h3>
-                                    <p><?= e((string) ($item['actor_name'] ?: $item['actor_email'] ?: 'System')); ?> / <?= e(format_datetime((string) ($item['created_at'] ?? null))); ?></p>
                                     <?php if (!empty($item['metadata_json'])): ?>
-                                        <p class="form-note"><?= e((string) $item['metadata_json']); ?></p>
+                                        <p><?= e((string) $item['metadata_json']); ?></p>
                                     <?php endif; ?>
+                                </div>
+                                <div class="admin-activity-row__aside">
+                                    <strong><?= e((string) ($item['actor_name'] ?: $item['actor_email'] ?: 'System')); ?></strong>
+                                    <div><?= e(format_datetime((string) ($item['created_at'] ?? null))); ?></div>
                                 </div>
                             </article>
                         <?php endforeach; ?>
@@ -2155,6 +2234,8 @@ $currentScreen = $screenMeta[$screen];
                 <?php endif; ?>
             </section>
         <?php endif; ?>
+            </div>
+        </div>
     </main>
 
     <div id="age-gate-root"></div>

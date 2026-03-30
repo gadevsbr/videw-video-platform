@@ -3,7 +3,7 @@
 return [
     'app' => [
         'name' => (string) env_value('VIDEW_APP_NAME', 'VIDEW 18+'),
-        'description' => (string) env_value('VIDEW_APP_DESCRIPTION', 'Adult-only video platform with verified creators, age gate, and private catalog access.'),
+        'description' => (string) env_value('VIDEW_APP_DESCRIPTION', '18+ video platform with free and premium access.'),
         'base_url' => rtrim((string) env_value('VIDEW_BASE_URL', ''), '/'),
         'support_email' => (string) env_value('VIDEW_SUPPORT_EMAIL', 'compliance@videw.local'),
         'brand_kicker' => (string) env_value('VIDEW_BRAND_KICKER', 'VIDEW'),
@@ -50,27 +50,27 @@ return [
         'stripe_webhook_secret' => (string) env_value('VIDEW_STRIPE_WEBHOOK_SECRET', ''),
         'premium_price_id' => (string) env_value('VIDEW_STRIPE_PREMIUM_PRICE_ID', ''),
         'premium_plan_name' => (string) env_value('VIDEW_STRIPE_PREMIUM_PLAN_NAME', 'Premium'),
-        'premium_plan_copy' => (string) env_value('VIDEW_STRIPE_PREMIUM_PLAN_COPY', 'Unlock the full premium catalog with an active recurring subscription.'),
+        'premium_plan_copy' => (string) env_value('VIDEW_STRIPE_PREMIUM_PLAN_COPY', 'Unlock every premium video with one monthly membership.'),
         'premium_price_label' => (string) env_value('VIDEW_STRIPE_PREMIUM_PRICE_LABEL', '$9.99 / month'),
     ],
     'footer' => [
-        'tagline' => (string) env_value('VIDEW_FOOTER_TAGLINE', (string) env_value('VIDEW_APP_DESCRIPTION', 'Adult-only video platform with verified creators, age gate, and private catalog access.')),
+        'tagline' => (string) env_value('VIDEW_FOOTER_TAGLINE', (string) env_value('VIDEW_APP_DESCRIPTION', '18+ video platform with free and premium access.')),
         'useful_title' => (string) env_value('VIDEW_FOOTER_USEFUL_TITLE', 'Useful links'),
         'legal_title' => (string) env_value('VIDEW_FOOTER_LEGAL_TITLE', 'Legal'),
         'support_title' => (string) env_value('VIDEW_FOOTER_SUPPORT_TITLE', 'Support'),
-        'support_copy' => (string) env_value('VIDEW_FOOTER_SUPPORT_COPY', 'Questions, takedowns, and legal notices.'),
+        'support_copy' => (string) env_value('VIDEW_FOOTER_SUPPORT_COPY', 'Questions, account help, legal notices, and takedown requests.'),
         'useful_links' => [
             [
                 'label' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_1_LABEL', 'Browse'),
-                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_1_URL', 'index.php#catalog'),
+                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_1_URL', 'browse.php'),
             ],
             [
-                'label' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_2_LABEL', 'Account'),
-                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_2_URL', 'account.php'),
+                'label' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_2_LABEL', 'Premium'),
+                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_2_URL', 'premium.php'),
             ],
             [
-                'label' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_3_LABEL', 'Sign in'),
-                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_3_URL', 'login.php'),
+                'label' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_3_LABEL', 'Support'),
+                'url' => (string) env_value('VIDEW_FOOTER_USEFUL_LINK_3_URL', 'support.php'),
             ],
         ],
         'legal_links' => [
@@ -96,24 +96,24 @@ return [
         'rules' => [
             'nav_label' => (string) env_value('VIDEW_RULES_NAV_LABEL', 'Rules'),
             'kicker' => (string) env_value('VIDEW_RULES_KICKER', 'Rules'),
-            'title' => (string) env_value('VIDEW_RULES_PAGE_TITLE', 'Built for a clear 18+ platform'),
-            'intro' => (string) env_value('VIDEW_RULES_PAGE_INTRO', 'This page explains how the platform handles age checks, consent, access levels, and review.'),
+            'title' => (string) env_value('VIDEW_RULES_PAGE_TITLE', 'How this site works'),
+            'intro' => (string) env_value('VIDEW_RULES_PAGE_INTRO', 'Read the rules for age checks, uploads, member access, and account use.'),
             'items' => [
                 [
                     'title' => (string) env_value('VIDEW_RULES_CARD_1_TITLE', 'Age check'),
-                    'copy' => (string) env_value('VIDEW_RULES_CARD_1_TEXT', 'Entry is limited to adults 18+ with a clear age gate.'),
+                    'copy' => (string) env_value('VIDEW_RULES_CARD_1_TEXT', 'Only adults 18 or older may enter and use the site.'),
                 ],
                 [
                     'title' => (string) env_value('VIDEW_RULES_CARD_2_TITLE', 'Consent'),
-                    'copy' => (string) env_value('VIDEW_RULES_CARD_2_TEXT', 'Creators and records should be tied to every upload.'),
+                    'copy' => (string) env_value('VIDEW_RULES_CARD_2_TEXT', 'Every upload must follow the site consent and content rules.'),
                 ],
                 [
                     'title' => (string) env_value('VIDEW_RULES_CARD_3_TITLE', 'Access'),
-                    'copy' => (string) env_value('VIDEW_RULES_CARD_3_TEXT', 'Free and premium content stay clearly separated.'),
+                    'copy' => (string) env_value('VIDEW_RULES_CARD_3_TEXT', 'Free and Premium videos stay clearly separated across the library.'),
                 ],
                 [
                     'title' => (string) env_value('VIDEW_RULES_CARD_4_TITLE', 'Review'),
-                    'copy' => (string) env_value('VIDEW_RULES_CARD_4_TEXT', 'Uploads can be checked before they go live.'),
+                    'copy' => (string) env_value('VIDEW_RULES_CARD_4_TEXT', 'Videos may be reviewed before they go live on the site.'),
                 ],
             ],
         ],
@@ -139,7 +139,7 @@ return [
     'cookie_notice' => [
         'enabled' => env_flag('VIDEW_COOKIE_NOTICE_ENABLED', true),
         'title' => (string) env_value('VIDEW_COOKIE_NOTICE_TITLE', 'Cookie notice'),
-        'text' => (string) env_value('VIDEW_COOKIE_NOTICE_TEXT', 'This site uses cookies or similar storage to keep sessions active, remember preferences, and improve performance.'),
+        'text' => (string) env_value('VIDEW_COOKIE_NOTICE_TEXT', 'This site uses cookies or similar storage to keep your session active, remember your choices, and improve performance.'),
         'accept_label' => (string) env_value('VIDEW_COOKIE_NOTICE_ACCEPT_LABEL', 'Accept'),
         'link_label' => (string) env_value('VIDEW_COOKIE_NOTICE_LINK_LABEL', 'Read cookie policy'),
         'link_url' => (string) env_value('VIDEW_COOKIE_NOTICE_LINK_URL', 'cookies.php'),

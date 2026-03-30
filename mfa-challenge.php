@@ -11,7 +11,7 @@ if (is_authenticated()) {
 }
 
 if (empty($_SESSION['pending_mfa_user_id'])) {
-    flash('error', 'Sign in first to continue with 2FA.');
+    flash('error', 'Sign in again to continue.');
     redirect('login.php');
 }
 
@@ -46,7 +46,7 @@ if (is_post_request()) {
         <section class="auth-intro">
             <span class="eyebrow">2FA</span>
             <h1>Enter your code</h1>
-            <p>Use a 6-digit authenticator code or one of your backup codes.</p>
+            <p>Use the 6-digit code from your authenticator app or one of your backup codes.</p>
             <a class="text-link" href="<?= e(base_url('login.php')); ?>">Back to sign in</a>
         </section>
         <section class="auth-card">

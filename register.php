@@ -60,7 +60,7 @@ $flashError = flash('error');
         <section class="auth-intro">
             <span class="eyebrow">JOIN 18+</span>
             <h1>Create your account</h1>
-            <p>Adult access only. You must confirm age and accept the site rules.</p>
+            <p>Create a free account to save your access and upgrade anytime.</p>
             <a class="text-link" href="<?= e(base_url()); ?>">Back to home</a>
         </section>
         <section class="auth-card">

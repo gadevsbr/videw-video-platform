@@ -125,6 +125,8 @@ final class AdminVideoService
         $existingSourceType = (string) ($existing['source_type'] ?? 'upload');
         $sourceMode = trim($input['source_mode'] ?? ($existingSourceType === 'upload' ? 'file' : 'url'));
         $externalUrl = trim($input['external_url'] ?? '');
+        $posterSourceMode = trim($input['poster_source_mode'] ?? (($existing && !empty($existing['poster_path'])) ? 'upload' : (!empty($existing['stored_poster_url']) ? 'url' : 'upload')));
+        $posterExternalUrl = trim($input['poster_external_url'] ?? '');
         $isFeatured = ($input['is_featured'] ?? (string) ($existing['is_featured'] ?? '0')) === '1' ? 1 : 0;
         $moderationStatus = trim($input['moderation_status'] ?? (string) ($existing['moderation_status'] ?? 'draft'));
         $moderationNotes = trim($input['moderation_notes'] ?? (string) ($existing['moderation_notes'] ?? ''));
@@ -144,6 +146,16 @@ final class AdminVideoService
 
         if ($durationMinutes < 0) {
             throw new RuntimeException('Duration must be zero or higher.');
+        }
+
+        $allowedSourceModes = $existing ? ['', 'file', 'url'] : ['file', 'url'];
+
+        if (!in_array($sourceMode, $allowedSourceModes, true)) {
+            throw new RuntimeException($existing ? 'Choose how you want to replace the video.' : 'Choose how you want to add the video.');
+        }
+
+        if (!in_array($posterSourceMode, ['', 'upload', 'url'], true)) {
+            throw new RuntimeException('Choose how you want to add the poster.');
         }
 
         $payload = [
@@ -185,7 +197,7 @@ final class AdminVideoService
             } elseif ($existing === null) {
                 throw new RuntimeException('Enter an external URL or switch to file upload.');
             }
-        } else {
+        } elseif ($sourceMode === 'file') {
             if (isset($files['video_file']) && uploaded_file_present($files['video_file'])) {
                 $upload = $this->storage->driver()->storeUploadedFile($files['video_file'], 'videos');
                 $payload['source_type'] = 'upload';
@@ -204,17 +216,33 @@ final class AdminVideoService
             }
         }
 
-        if ($removePoster && $existing && !empty($existing['poster_path'])) {
-            $this->cleanup->removePath(
-                (string) ($existing['poster_storage_provider'] ?? $existing['storage_provider'] ?? ''),
-                (string) $existing['poster_path']
-            );
+        if ($removePoster && $existing && (!empty($existing['poster_path']) || !empty($existing['stored_poster_url']))) {
+            if (!empty($existing['poster_path'])) {
+                $this->cleanup->removePath(
+                    (string) ($existing['poster_storage_provider'] ?? $existing['storage_provider'] ?? ''),
+                    (string) $existing['poster_path']
+                );
+            }
+
             $payload['poster_url'] = null;
             $payload['poster_path'] = null;
             $payload['poster_storage_provider'] = null;
         }
 
-        if (isset($files['poster_file']) && uploaded_file_present($files['poster_file'])) {
+        if ($posterSourceMode === 'url' && $posterExternalUrl !== '') {
+            $resolvedPosterUrl = $this->sources->resolvePosterUrl($posterExternalUrl);
+
+            if ($existing && !empty($existing['poster_path'])) {
+                $this->cleanup->removePath(
+                    (string) ($existing['poster_storage_provider'] ?? $existing['storage_provider'] ?? ''),
+                    (string) $existing['poster_path']
+                );
+            }
+
+            $payload['poster_url'] = $resolvedPosterUrl;
+            $payload['poster_path'] = null;
+            $payload['poster_storage_provider'] = 'external';
+        } elseif ($posterSourceMode === 'upload' && isset($files['poster_file']) && uploaded_file_present($files['poster_file'])) {
             $posterUpload = $this->storage->driver()->storeUploadedFile($files['poster_file'], 'posters');
 
             if ($existing && !empty($existing['poster_path'])) {

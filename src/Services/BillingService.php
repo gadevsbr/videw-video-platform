@@ -60,7 +60,7 @@ final class BillingService
     public function checkoutUrl(array $user): string
     {
         if (!$this->isConfigured()) {
-            throw new RuntimeException('Stripe billing is not configured yet.');
+            throw new RuntimeException('Premium access is not available right now.');
         }
 
         if (user_has_premium_access($user)) {
@@ -99,7 +99,7 @@ final class BillingService
         $url = trim((string) ($session['url'] ?? ''));
 
         if ($url === '') {
-            throw new RuntimeException('Stripe did not return a checkout URL.');
+            throw new RuntimeException('We could not start checkout right now.');
         }
 
         return $url;
@@ -108,7 +108,7 @@ final class BillingService
     public function billingPortalUrl(array $user): string
     {
         if (trim((string) ($user['stripe_customer_id'] ?? '')) === '') {
-            throw new RuntimeException('No Stripe customer is linked to this account yet.');
+            throw new RuntimeException('This account does not have plan management available yet.');
         }
 
         $session = $this->client()->createBillingPortalSession([
@@ -118,7 +118,7 @@ final class BillingService
         $url = trim((string) ($session['url'] ?? ''));
 
         if ($url === '') {
-            throw new RuntimeException('Stripe did not return a billing portal URL.');
+            throw new RuntimeException('We could not open plan management right now.');
         }
 
         return $url;
@@ -130,7 +130,7 @@ final class BillingService
     public function syncSuccessfulCheckout(string $sessionId, ?int $expectedUserId = null): array
     {
         if (trim($sessionId) === '') {
-            return ['success' => false, 'message' => 'Missing Checkout session id.'];
+            return ['success' => false, 'message' => 'We could not confirm your payment.'];
         }
 
         try {
@@ -138,7 +138,7 @@ final class BillingService
             $resolvedUserId = (int) ($session['client_reference_id'] ?? $session['metadata']['user_id'] ?? 0);
 
             if ($expectedUserId !== null && $expectedUserId > 0 && $resolvedUserId > 0 && $resolvedUserId !== $expectedUserId) {
-                throw new RuntimeException('This Checkout session does not belong to the current account.');
+                throw new RuntimeException('This payment confirmation does not match your account.');
             }
 
             if (!empty($session['subscription']) && is_array($session['subscription'])) {
@@ -148,7 +148,7 @@ final class BillingService
                 $this->syncSubscriptionPayload($subscription, $resolvedUserId > 0 ? $resolvedUserId : $expectedUserId);
             }
 
-            return ['success' => true, 'message' => 'Premium checkout confirmed. Your account has been refreshed.'];
+            return ['success' => true, 'message' => 'Your Premium access is now active.'];
         } catch (RuntimeException $exception) {
             return ['success' => false, 'message' => $exception->getMessage()];
         }

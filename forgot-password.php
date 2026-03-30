@@ -48,7 +48,7 @@ if (is_post_request()) {
         <section class="auth-intro">
             <span class="eyebrow">PASSWORD RESET</span>
             <h1>Reset access</h1>
-            <p>Request a one-time reset link to set a new password.</p>
+            <p>Enter your email and we will help you reset your password.</p>
             <a class="text-link" href="<?= e(base_url('login.php')); ?>">Back to sign in</a>
         </section>
         <section class="auth-card">
@@ -64,11 +64,11 @@ if (is_post_request()) {
                     <span>Email</span>
                     <input type="email" name="email" value="<?= e(old('email')); ?>" required>
                 </label>
-                <button class="button" type="submit">Generate reset link</button>
+                <button class="button" type="submit">Send reset link</button>
                 <?php if ($showResetLink): ?>
-                    <p class="form-note">Development mode is exposing reset links directly. Disable `VIDEW_DEBUG_EXPOSE_RESET_LINKS` in production.</p>
+                    <p class="form-note">Reset link preview is enabled for this site right now.</p>
                 <?php else: ?>
-                    <p class="form-note">Use your configured delivery channel to complete the reset flow.</p>
+                    <p class="form-note">If the email matches an account, the next step will be sent to you.</p>
                 <?php endif; ?>
             </form>
             <?php if ($showResetLink && $resetUrl): ?>

@@ -58,8 +58,8 @@ if (is_post_request()) {
                 <a class="button" href="<?= e(base_url('login.php')); ?>">Go to sign in</a>
             <?php elseif ($token === ''): ?>
                 <div class="notice-card">
-                    <strong>Invalid reset link</strong>
-                    <p>Open this page from a valid reset URL.</p>
+                    <strong>Reset link unavailable</strong>
+                    <p>This reset link is not valid anymore. Request a new one and try again.</p>
                 </div>
             <?php else: ?>
                 <form method="post" class="auth-form">

@@ -19,12 +19,11 @@ $heroQueue = array_values(array_filter(
     static fn (array $video): bool => $heroVideo === null || (string) $video['slug'] !== (string) $heroVideo['slug']
 ));
 $heroQueue = array_slice($heroQueue, 0, 3);
+$previewVideos = array_slice($videos, 0, 6);
 $stats = $repository->stats();
 $bootPayload = default_bootstrap_payload('home', [
     'usingFallback' => $repository->usingFallback(),
-    'videos' => $publicVideos,
     'stats' => $stats,
-    'categories' => $repository->categories(),
 ]);
 $flashError = flash('error');
 $flashSuccess = flash('success');
@@ -41,40 +40,11 @@ clear_old_input();
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
-    <div class="legal-bar">
-        <span>Adults only 18+</span>
-        <span>Verified creators</span>
-        <span>ID and consent required</span>
-    </div>
-
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
-        </a>
-        <nav class="site-nav">
-            <a href="#catalog">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
-            <a href="<?= e(base_url('rules.php')); ?>"><?= e(rules_nav_label()); ?></a>
-            <a href="<?= e(base_url('account.php')); ?>">Account</a>
-            <?php if (is_admin()): ?>
-                <a href="<?= e(base_url('admin.php')); ?>">Admin</a>
-            <?php endif; ?>
-        </nav>
-        <div class="site-nav__actions">
-            <?php if ($user): ?>
-                <span class="pill pill--muted"><?= e($user['display_name']); ?></span>
-                <?php if (is_admin()): ?>
-                    <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Admin</a>
-                <?php endif; ?>
-                <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Dashboard</a>
-                <?= logout_button('Log out'); ?>
-            <?php else: ?>
-                <a class="button button--ghost" href="<?= e(base_url('login.php')); ?>">Sign in</a>
-                <a class="button" href="<?= e(base_url('register.php')); ?>">Join</a>
-            <?php endif; ?>
-        </div>
-    </header>
+    <?php
+    $publicNavActive = 'home';
+    $publicBarItems = ['Adults only 18+', 'Verified creators', 'Free and Premium access'];
+    require ROOT_PATH . '/partials/public-header.php';
+    ?>
 
     <?php if ($flashError): ?>
         <div class="flash flash--error"><?= e((string) $flashError); ?></div>
@@ -86,12 +56,12 @@ clear_old_input();
     <main class="page-shell">
         <section class="hero hero--landing">
             <div class="hero__copy">
-                <span class="eyebrow">ADULT VIDEO HUB</span>
+                <span class="eyebrow">18+ STREAMING</span>
                 <h1>Watch verified adult videos.</h1>
-                <p>Fast browsing, clean layout, local uploads, Wasabi storage, and external embeds.</p>
+                <p>Discover free and Premium scenes with simple labels, cleaner navigation, and a faster path to playback.</p>
                 <div class="hero__actions">
-                    <a class="button" href="#catalog">Browse videos</a>
-                    <a class="button button--ghost" href="<?= e(base_url('rules.php')); ?>">Read rules</a>
+                    <a class="button" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
+                    <a class="button button--ghost" href="<?= e(base_url('premium.php')); ?>">See Premium</a>
                 </div>
                 <div class="hero-metrics">
                     <article class="hero-metric">
@@ -112,8 +82,8 @@ clear_old_input();
                 </div>
                 <?php if ($repository->usingFallback()): ?>
                     <div class="notice-card">
-                        <strong>Demo mode</strong>
-                        <p>The database is offline. The front end is using local fallback data.</p>
+                        <strong>Catalog preview</strong>
+                        <p>A preview selection is showing right now. The full library will appear here when your site is fully connected.</p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -156,9 +126,9 @@ clear_old_input();
             <div class="section-heading">
                 <div>
                     <span class="eyebrow">FEATURED</span>
-                    <h2>Top picks right now</h2>
+                    <h2>Start with the featured picks</h2>
                 </div>
-                <p>Simple layout, clear labels, and fast browsing.</p>
+                <p>Use the home page for quick discovery, then jump into the full browse view when you want filters.</p>
             </div>
             <div class="featured-grid">
                 <?php foreach (array_slice($featured, 0, 3) as $video): ?>
@@ -178,7 +148,7 @@ clear_old_input();
                             <p><?= e($video['synopsis']); ?></p>
                             <div class="video-card__footer">
                                 <span><?= e($video['creator_name']); ?></span>
-                                <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Open video</a>
+                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
                             </div>
                         </div>
                     </article>
@@ -186,39 +156,77 @@ clear_old_input();
             </div>
         </section>
 
-        <section id="catalog" class="catalog-section">
+        <section class="catalog-section">
             <div class="section-heading">
                 <div>
-                    <span class="eyebrow">BROWSE</span>
-                    <h2>Search and filter</h2>
+                    <span class="eyebrow">QUICK BROWSE</span>
+                    <h2>Preview the latest uploads</h2>
                 </div>
-                <p>Filter by title, creator, category, or access.</p>
+                <p>Keep browsing on the dedicated library page for search, filters, and sorting.</p>
             </div>
-            <div id="catalog-app">
-                <div class="grid-fallback">
-                    <?php foreach (array_slice($videos, 0, 6) as $video): ?>
-                        <article class="video-card">
-                            <a class="video-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
-                                <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
-                                <div class="video-card__overlay">
-                                    <div class="meta-row">
-                                        <span class="pill"><?= e($video['category']); ?></span>
-                                        <span class="pill pill--muted"><?= e($video['access_label']); ?></span>
-                                    </div>
-                                    <span class="video-card__duration"><?= e($video['duration_label']); ?></span>
+            <div class="grid-fallback">
+                <?php foreach ($previewVideos as $video): ?>
+                    <article class="video-card">
+                        <a class="video-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
+                            <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
+                            <div class="video-card__overlay">
+                                <div class="meta-row">
+                                    <span class="pill"><?= e($video['category']); ?></span>
+                                    <span class="pill pill--muted"><?= e($video['access_label']); ?></span>
                                 </div>
-                            </a>
-                            <div class="video-card__body">
-                                <h3><?= e($video['title']); ?></h3>
-                                <p><?= e($video['synopsis']); ?></p>
-                                <div class="video-card__footer">
-                                    <span><?= e($video['creator_name']); ?></span>
-                                    <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">View details</a>
-                                </div>
+                                <span class="video-card__duration"><?= e($video['duration_label']); ?></span>
                             </div>
-                        </article>
-                    <?php endforeach; ?>
+                        </a>
+                        <div class="video-card__body">
+                            <h3><?= e($video['title']); ?></h3>
+                            <p><?= e($video['synopsis']); ?></p>
+                            <div class="video-card__footer">
+                                <span><?= e($video['creator_name']); ?></span>
+                                <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">Watch now</a>
+                            </div>
+                        </div>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+            <div class="cta-band">
+                <div class="cta-band__copy">
+                    <span class="eyebrow">NEXT STEP</span>
+                    <h2>Open the full library</h2>
+                    <p>Search by title, creator, category, or access level on the dedicated browse page.</p>
                 </div>
+                <div class="hero__actions">
+                    <a class="button" href="<?= e(base_url('browse.php')); ?>">Open browse page</a>
+                    <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Need help?</a>
+                </div>
+            </div>
+        </section>
+
+        <section class="catalog-section">
+            <div class="section-heading">
+                <div>
+                    <span class="eyebrow">MEMBERSHIP</span>
+                    <h2>Choose how you want to watch</h2>
+                </div>
+                <p>Free videos stay open to everyone. Premium videos stay reserved for paying members.</p>
+            </div>
+            <div class="pricing-grid">
+                <article class="pricing-card">
+                    <span class="pill pill--muted">Free</span>
+                    <h3>Open access videos</h3>
+                    <p>Watch any video marked Free without payment. Create an account only when you want saved access, billing, or added security.</p>
+                    <div class="hero__actions">
+                        <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse free videos</a>
+                    </div>
+                </article>
+                <article class="pricing-card pricing-card--accent">
+                    <span class="pill">Premium</span>
+                    <h3>One plan for every Premium title</h3>
+                    <p>Use one membership to unlock all Premium videos, then manage billing from your account whenever you need.</p>
+                    <div class="hero__actions">
+                        <a class="button" href="<?= e(base_url('premium.php')); ?>">View plans</a>
+                        <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Payment help</a>
+                    </div>
+                </article>
             </div>
         </section>
 

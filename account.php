@@ -89,30 +89,11 @@ $flashSuccess = flash('success');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
-    <div class="legal-bar">
-        <span>Signed in</span>
-        <span>Adult platform</span>
-        <span>Restricted area</span>
-    </div>
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
-        </a>
-        <nav class="site-nav">
-            <a href="<?= e(base_url()); ?>">Home</a>
-            <a href="<?= e(base_url('index.php#catalog')); ?>">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
-            <a href="<?= e(base_url('rules.php')); ?>"><?= e(rules_nav_label()); ?></a>
-            <?php if (is_admin()): ?>
-                <a href="<?= e(base_url('admin.php')); ?>">Admin</a>
-            <?php endif; ?>
-        </nav>
-        <div class="site-nav__actions">
-            <span class="pill pill--muted"><?= e((string) $user['display_name']); ?></span>
-            <?= logout_button('Log out'); ?>
-        </div>
-    </header>
+    <?php
+    $publicNavActive = '';
+    $publicBarItems = ['Signed in', 'Members area', '18+ access'];
+    require ROOT_PATH . '/partials/public-header.php';
+    ?>
     <main class="page-shell">
         <section class="account-panel">
             <?php if ($flashError): ?>
@@ -126,20 +107,29 @@ $flashSuccess = flash('success');
                     <span class="eyebrow">ACCOUNT</span>
                     <h1><?= e((string) $user['display_name']); ?></h1>
                 </div>
+                <p>Keep membership, security, and account help grouped in one place.</p>
+            </div>
+            <div class="account-summary-grid">
+                <article class="mini-stat">
+                    <span>Plan</span>
+                    <strong><?= e(account_tier_label((string) ($user['account_tier'] ?? 'free'))); ?></strong>
+                </article>
+                <article class="mini-stat">
+                    <span>Status</span>
+                    <strong><?= e(user_status_label((string) ($user['status'] ?? 'active'))); ?></strong>
+                </article>
+                <article class="mini-stat">
+                    <span>Security</span>
+                    <strong><?= (int) ($user['mfa_enabled'] ?? 0) === 1 ? '2FA on' : '2FA off'; ?></strong>
+                </article>
             </div>
             <div class="account-grid">
-                <article class="compliance-card">
-                    <h3>Profile</h3>
-                    <p><strong>Email:</strong> <?= e((string) $user['email']); ?></p>
-                    <p><strong>Role:</strong> <?= e((string) $user['role']); ?></p>
-                    <p><strong>Status:</strong> <?= e(user_status_label((string) ($user['status'] ?? 'active'))); ?></p>
-                </article>
                 <article class="compliance-card" id="subscription">
                     <h3>Subscription</h3>
                     <p><strong>Plan:</strong> <?= e(account_tier_label((string) ($user['account_tier'] ?? 'free'))); ?></p>
-                    <p><strong>Stripe status:</strong> <?= e(subscription_status_label((string) ($user['stripe_subscription_status'] ?? null))); ?></p>
+                    <p><strong>Membership status:</strong> <?= e(subscription_status_label((string) ($user['stripe_subscription_status'] ?? null))); ?></p>
                     <?php if (!empty($user['stripe_current_period_end'])): ?>
-                        <p><strong>Current period end:</strong> <?= e(format_datetime((string) $user['stripe_current_period_end'], 'Unknown')); ?></p>
+                        <p><strong>Access until:</strong> <?= e(format_datetime((string) $user['stripe_current_period_end'], 'Not available')); ?></p>
                     <?php endif; ?>
                     <p><?= e($billing->planCopy()); ?></p>
 
@@ -147,7 +137,7 @@ $flashSuccess = flash('success');
                         <?php if (user_has_premium_access($user) || !empty($user['stripe_customer_id'])): ?>
                             <form method="post" action="<?= e(base_url('manage-billing.php')); ?>" class="security-form">
                                 <?= csrf_input('billing_portal'); ?>
-                                <button class="button" type="submit">Manage subscription</button>
+                                <button class="button" type="submit">Manage plan</button>
                             </form>
                         <?php else: ?>
                             <form method="post" action="<?= e(base_url('start-premium-checkout.php')); ?>" class="security-form">
@@ -156,15 +146,22 @@ $flashSuccess = flash('success');
                             </form>
                         <?php endif; ?>
                     <?php else: ?>
-                        <p class="form-note">Premium checkout is not configured yet.</p>
+                        <p class="form-note">Premium access is not available right now.</p>
                     <?php endif; ?>
 
-                    <a class="text-link" href="<?= e(base_url('premium.php')); ?>">Open plans page</a>
+                    <a class="text-link" href="<?= e(base_url('premium.php')); ?>">See plans</a>
+                </article>
+                <article class="compliance-card">
+                    <h3>Profile</h3>
+                    <p><strong>Email:</strong> <?= e((string) $user['email']); ?></p>
+                    <p><strong>Account type:</strong> <?= e(ucfirst((string) $user['role'])); ?></p>
+                    <p><strong>Account status:</strong> <?= e(user_status_label((string) ($user['status'] ?? 'active'))); ?></p>
+                    <a class="text-link" href="<?= e(base_url('browse.php')); ?>">Go to browse</a>
                 </article>
                 <article class="compliance-card" id="security">
                     <h3>Security</h3>
                     <p><strong>2FA:</strong> <?= (int) ($user['mfa_enabled'] ?? 0) === 1 ? 'Enabled' : 'Disabled'; ?></p>
-                    <p>Use an authenticator app for login codes. Backup codes work as a fallback.</p>
+                    <p>Use an authenticator app for extra sign-in protection. Backup codes help you get back in if you lose your device.</p>
 
                     <?php if ((int) ($user['mfa_enabled'] ?? 0) === 1): ?>
                         <form method="post" class="security-form">
@@ -178,9 +175,9 @@ $flashSuccess = flash('success');
                         </form>
                     <?php elseif ($pendingMfaSetup): ?>
                         <div class="security-note">
-                            <strong>Setup key</strong>
+                            <strong>Authenticator key</strong>
                             <code><?= e((string) $pendingMfaSetup['secret']); ?></code>
-                            <strong>Authenticator URI</strong>
+                            <strong>Setup link</strong>
                             <code><?= e((string) $pendingMfaSetup['otpauth_uri']); ?></code>
                         </div>
                         <form method="post" class="security-form">
@@ -203,7 +200,7 @@ $flashSuccess = flash('success');
                 <?php if (is_array($backupCodes) && $backupCodes !== []): ?>
                     <article class="compliance-card">
                         <h3>Backup codes</h3>
-                        <p>Save these codes now. They will not be shown again.</p>
+                        <p>Save these codes now. They are shown only once.</p>
                         <div class="backup-code-list">
                             <?php foreach ($backupCodes as $backupCode): ?>
                                 <code><?= e((string) $backupCode); ?></code>
@@ -213,23 +210,24 @@ $flashSuccess = flash('success');
                 <?php endif; ?>
                 <article class="compliance-card">
                     <h3>Password reset</h3>
-                    <p>If you lose access, generate a one-time reset link from the public reset flow.</p>
+                    <p>If you lose access, use the reset page to request a new password link.</p>
                     <a class="text-link" href="<?= e(base_url('forgot-password.php')); ?>">Open password reset</a>
                 </article>
                 <?php if (is_admin()): ?>
                     <article class="compliance-card">
                         <h3>Admin</h3>
-                        <p><strong>Active driver:</strong> <?= e((string) ($storageSettings['upload_driver'] ?? 'local')); ?></p>
-                        <p>Use the admin panel to switch storage and publish videos.</p>
+                        <p><strong>Current storage:</strong> <?= e((string) ($storageSettings['upload_driver'] ?? 'local')); ?></p>
+                        <p>Open the control panel to manage videos, members, payments, and site settings.</p>
                     </article>
                 <?php endif; ?>
             </div>
             <div class="hero__actions">
-                <a class="button" href="<?= e(base_url()); ?>">Go to browse</a>
+                <a class="button" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
+                <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Get help</a>
                 <?php if (is_admin()): ?>
                     <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Open admin</a>
                 <?php endif; ?>
-                <?= logout_button('End session'); ?>
+                <?= logout_button('Sign out'); ?>
             </div>
         </section>
     </main>

@@ -20,7 +20,7 @@ if ($checkoutState === 'success' && $checkoutSessionId !== '') {
     $result = $billing->syncSuccessfulCheckout($checkoutSessionId, $user ? (int) ($user['id'] ?? 0) : null);
 
     if ($result['success']) {
-        flash('success', $user ? $result['message'] : 'Premium checkout confirmed. Sign in to refresh your account.');
+        flash('success', $user ? $result['message'] : 'Your payment is confirmed. Sign in to refresh your account.');
     } else {
         flash('error', $result['message']);
     }
@@ -29,7 +29,7 @@ if ($checkoutState === 'success' && $checkoutSessionId !== '') {
 }
 
 if ($checkoutState === 'cancel') {
-    flash('error', 'Stripe checkout was canceled before completion.');
+    flash('error', 'Checkout was canceled before payment was completed.');
     redirect('premium.php');
 }
 
@@ -48,36 +48,11 @@ $flashSuccess = flash('success');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
-    <div class="legal-bar">
-        <span>Adults only 18+</span>
-        <span>Hosted Stripe checkout</span>
-        <span>Free and premium access</span>
-    </div>
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
-        </a>
-        <nav class="site-nav">
-            <a href="<?= e(base_url()); ?>">Home</a>
-            <a href="<?= e(base_url('index.php#catalog')); ?>">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
-            <a href="<?= e(base_url('rules.php')); ?>"><?= e(rules_nav_label()); ?></a>
-            <a href="<?= e(base_url('account.php')); ?>">Account</a>
-            <?php if (is_admin()): ?>
-                <a href="<?= e(base_url('admin.php')); ?>">Admin</a>
-            <?php endif; ?>
-        </nav>
-        <div class="site-nav__actions">
-            <?php if ($user): ?>
-                <span class="pill pill--muted"><?= e(account_tier_label((string) ($user['account_tier'] ?? 'free'))); ?></span>
-                <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Dashboard</a>
-            <?php else: ?>
-                <a class="button button--ghost" href="<?= e(base_url('login.php')); ?>">Sign in</a>
-                <a class="button" href="<?= e(base_url('register.php')); ?>">Join</a>
-            <?php endif; ?>
-        </div>
-    </header>
+    <?php
+    $publicNavActive = 'premium';
+    $publicBarItems = ['Adults only 18+', 'Secure checkout', 'Free and Premium access'];
+    require ROOT_PATH . '/partials/public-header.php';
+    ?>
 
     <?php if ($flashError): ?>
         <div class="flash flash--error"><?= e((string) $flashError); ?></div>
@@ -101,19 +76,19 @@ $flashSuccess = flash('success');
                     <?php elseif ($billingConfigured && $user && (user_has_premium_access($user) || !empty($user['stripe_customer_id']))): ?>
                         <form method="post" action="<?= e(base_url('manage-billing.php')); ?>">
                             <?= csrf_input('billing_portal'); ?>
-                            <button class="button" type="submit">Manage billing</button>
+                            <button class="button" type="submit">Manage plan</button>
                         </form>
                     <?php elseif (!$user): ?>
                         <a class="button" href="<?= e(base_url('register.php')); ?>">Create free account</a>
                     <?php endif; ?>
-                    <a class="button button--ghost" href="<?= e(base_url('index.php#catalog')); ?>">Browse videos</a>
+                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
                 </div>
                 <?php if (!$billingConfigured): ?>
                     <div class="notice-card">
-                        <strong>Premium checkout not ready yet</strong>
-                        <p>The Stripe credentials or price ID are missing. <?php if (is_admin()): ?>Finish the setup in the admin billing screen.<?php else: ?>Try again later.<?php endif; ?></p>
+                        <strong>Premium access is not available right now</strong>
+                        <p><?php if (is_admin()): ?>Finish the payment setup in the admin panel to open Premium memberships.<?php else: ?>Please check back soon.<?php endif; ?></p>
                         <?php if (is_admin()): ?>
-                            <a class="text-link" href="<?= e(base_url('admin.php?screen=billing')); ?>">Open billing settings</a>
+                            <a class="text-link" href="<?= e(base_url('admin.php?screen=billing')); ?>">Open payment settings</a>
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
@@ -131,9 +106,9 @@ $flashSuccess = flash('success');
                     <article class="notice-card">
                         <strong>Your account</strong>
                         <p><strong>Plan:</strong> <?= e(account_tier_label((string) ($user['account_tier'] ?? 'free'))); ?></p>
-                        <p><strong>Stripe status:</strong> <?= e(subscription_status_label((string) ($user['stripe_subscription_status'] ?? null))); ?></p>
+                        <p><strong>Membership status:</strong> <?= e(subscription_status_label((string) ($user['stripe_subscription_status'] ?? null))); ?></p>
                         <?php if (!empty($user['stripe_current_period_end'])): ?>
-                            <p><strong>Current period end:</strong> <?= e(format_datetime((string) $user['stripe_current_period_end'], 'Unknown')); ?></p>
+                            <p><strong>Access until:</strong> <?= e(format_datetime((string) $user['stripe_current_period_end'], 'Not available')); ?></p>
                         <?php endif; ?>
                     </article>
                 <?php endif; ?>
@@ -146,17 +121,17 @@ $flashSuccess = flash('success');
                     <span class="eyebrow">PLANS</span>
                     <h2>Free vs Premium</h2>
                 </div>
-                <p>Free videos stay public. Premium videos require a logged-in premium account.</p>
+                <p>Free videos stay open to everyone. Premium videos require a signed-in Premium member.</p>
             </div>
             <div class="pricing-grid">
                 <article class="pricing-card">
                     <span class="pill pill--muted">Free</span>
                     <h3>Free account</h3>
-                    <p>Watch every video tagged as `Free` without payment.</p>
+                    <p>Watch every video marked as free with no payment required.</p>
                     <ul class="pricing-list">
                         <li>No login required for free videos</li>
-                        <li>Sign in to manage account security</li>
-                        <li>Upgrade later through Stripe Checkout</li>
+                        <li>Create an account to manage security and upgrades</li>
+                        <li>Upgrade anytime from your account</li>
                     </ul>
                     <?php if ($user): ?>
                         <a class="text-link" href="<?= e(base_url('account.php')); ?>">Open account</a>
@@ -169,24 +144,24 @@ $flashSuccess = flash('success');
                     <h3><?= e($billing->planPriceLabel()); ?></h3>
                     <p><?= e($billing->planCopy()); ?></p>
                     <ul class="pricing-list">
-                        <li>Required for videos tagged as `Premium`</li>
-                        <li>Managed through Stripe Billing Portal</li>
-                        <li>Account access synced by Stripe webhooks</li>
+                        <li>Required for every video marked Premium</li>
+                        <li>Manage payment details and cancel anytime</li>
+                        <li>Your access updates automatically after payment</li>
                     </ul>
                     <?php if ($billingConfigured && $user && !user_has_premium_access($user)): ?>
                         <form method="post" action="<?= e(base_url('start-premium-checkout.php')); ?>">
                             <?= csrf_input('billing_checkout'); ?>
-                            <button class="button" type="submit">Start Checkout</button>
+                            <button class="button" type="submit">Start secure checkout</button>
                         </form>
                     <?php elseif ($billingConfigured && $user && (user_has_premium_access($user) || !empty($user['stripe_customer_id']))): ?>
                         <form method="post" action="<?= e(base_url('manage-billing.php')); ?>">
                             <?= csrf_input('billing_portal'); ?>
-                            <button class="button" type="submit">Open Billing Portal</button>
+                            <button class="button" type="submit">Manage plan</button>
                         </form>
                     <?php elseif (!$user): ?>
                         <a class="button" href="<?= e(base_url('login.php')); ?>">Sign in to upgrade</a>
                     <?php else: ?>
-                        <p class="form-note">Premium checkout is temporarily unavailable.</p>
+                        <p class="form-note">Premium access is temporarily unavailable.</p>
                     <?php endif; ?>
                 </article>
             </div>
@@ -196,27 +171,38 @@ $flashSuccess = flash('success');
             <div class="section-heading">
                 <div>
                     <span class="eyebrow">ACCESS RULES</span>
-                    <h2>What happens at playback</h2>
+                    <h2>What Premium changes</h2>
                 </div>
-                <p>The player enforces the access label on each video.</p>
+                <p>Keep the difference simple so visitors understand what each label means before checkout.</p>
             </div>
             <div class="compliance-grid">
                 <article class="compliance-card">
                     <h3>Free</h3>
-                    <p>Videos marked as `Free` can be watched by any visitor, even without a login.</p>
+                    <p>Videos marked as free can be watched by any visitor, even without a login.</p>
                 </article>
                 <article class="compliance-card">
                     <h3>Premium</h3>
-                    <p>Videos marked as `Premium` only play for logged-in accounts with an active Premium subscription.</p>
+                    <p>Videos marked as Premium only play for signed-in members with an active Premium plan.</p>
                 </article>
                 <article class="compliance-card">
                     <h3>Checkout</h3>
-                    <p>The upgrade flow redirects to Stripe Hosted Checkout and returns to this page after payment.</p>
+                    <p>The upgrade flow opens a secure payment page and returns here when payment is complete.</p>
                 </article>
                 <article class="compliance-card">
-                    <h3>Billing Portal</h3>
-                    <p>Existing subscribers manage payment methods and cancellations in the Stripe customer portal.</p>
+                    <h3>Manage plan</h3>
+                    <p>Existing subscribers can update payment details or cancel their plan from their account.</p>
                 </article>
+            </div>
+        </section>
+
+        <section class="cta-band">
+            <div class="cta-band__copy">
+                <span class="eyebrow">SUPPORT</span>
+                <h2>Need help before upgrading?</h2>
+                <p>Use the support page for account access, billing help, and legal contact information.</p>
+            </div>
+            <div class="hero__actions">
+                <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>">Open support</a>
             </div>
         </section>
     </main>

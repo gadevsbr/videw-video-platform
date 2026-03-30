@@ -54,7 +54,7 @@ final class AuthService
         if (!Database::connection()) {
             return [
                 'success' => false,
-                'message' => 'Database unavailable. Check the MySQL host, database name, username, password, and confirm db/schema.sql was imported.',
+                'message' => 'Sign in is temporarily unavailable. Please try again later.',
             ];
         }
 
@@ -222,7 +222,7 @@ final class AuthService
         ];
 
         if ((bool) config('security.expose_reset_links', false)) {
-            $response['message'] = 'Reset link generated for development mode.';
+            $response['message'] = 'Reset link is ready.';
             $response['reset_url'] = base_url('reset-password.php?token=' . urlencode($token));
         }
 

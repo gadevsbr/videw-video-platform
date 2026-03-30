@@ -170,7 +170,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. Check the MySQL host, database name, username, password, and confirm db/schema.sql was imported.');
+            throw new RuntimeException('Sign-up is temporarily unavailable. Please try again later.');
         }
 
         try {
@@ -198,7 +198,7 @@ final class UserRepository
                 'adult_confirmed_at' => $payload['adult_confirmed_at'],
             ]);
         } catch (Throwable $exception) {
-            throw new RuntimeException('The users table is missing or outdated. Import the MySQL schema. ' . $exception->getMessage());
+            throw new RuntimeException('Sign-up is temporarily unavailable. Please try again later.');
         }
 
         return $this->findByEmail((string) $payload['email']) ?? [];
@@ -209,7 +209,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. User management requires MySQL to be online.');
+            throw new RuntimeException('User management is temporarily unavailable.');
         }
 
         if (!in_array($role, ['member', 'creator', 'admin'], true)) {
@@ -242,7 +242,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. Password reset requires MySQL to be online.');
+            throw new RuntimeException('Password reset is temporarily unavailable.');
         }
 
         try {
@@ -269,7 +269,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. MFA setup requires MySQL to be online.');
+            throw new RuntimeException('Two-step verification is temporarily unavailable.');
         }
 
         try {
@@ -300,7 +300,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. MFA update requires MySQL to be online.');
+            throw new RuntimeException('Two-step verification is temporarily unavailable.');
         }
 
         try {
@@ -325,7 +325,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. MFA update requires MySQL to be online.');
+            throw new RuntimeException('Two-step verification is temporarily unavailable.');
         }
 
         try {
@@ -373,7 +373,7 @@ final class UserRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
-            throw new RuntimeException('Database unavailable. Billing sync requires MySQL to be online.');
+            throw new RuntimeException('Membership updates are temporarily unavailable.');
         }
 
         try {

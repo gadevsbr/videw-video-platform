@@ -87,7 +87,7 @@ function renderVideoCard(video) {
         <p>${video.synopsis}</p>
         <div class="video-card__footer">
           <span>${video.creator_name}</span>
-          <a class="text-link" href=${href}>View details</a>
+          <a class="text-link" href=${href}>Watch now</a>
         </div>
       </div>
     </article>
@@ -98,8 +98,8 @@ function renderEmptyState() {
   return html`
     <article class="empty-state">
       <span class="eyebrow">NO RESULTS</span>
-      <h3>No videos match these filters.</h3>
-      <p>Change the search, category, or access filter and try again.</p>
+      <h3>No videos match your filters.</h3>
+      <p>Try another word or change one of the filters.</p>
     </article>
   `;
 }
@@ -147,7 +147,7 @@ function CatalogApp() {
           <span>Search by title or creator</span>
           <input
             type="search"
-            placeholder="Search..."
+            placeholder="Search titles or creators"
             value=${() => query.value}
             on:input=${(event) => {
               query.value = event.target.value;
@@ -160,7 +160,7 @@ function CatalogApp() {
             <strong>${() => numberFormatter.format(filteredVideos.value.length)}</strong>
           </article>
           <article class="mini-stat">
-            <span>Paid content</span>
+            <span>Premium videos</span>
             <strong>${() => numberFormatter.format(paidCount.value)}</strong>
           </article>
           <article class="mini-stat">
@@ -195,7 +195,7 @@ function CatalogApp() {
 
       <div class="catalog-ui__summary">
         <p>${() => resultLabel.value}</p>
-        <span>${bootstrap.usingFallback ? "Demo mode is active." : "Live data from the PHP backend."}</span>
+        <span>${bootstrap.usingFallback ? "Preview catalog is active." : "Browse the latest videos below."}</span>
       </div>
 
       <div class="catalog-grid">
@@ -214,7 +214,7 @@ function AgeGateApp() {
   });
 
   async function confirmAge() {
-    status.value = "Saving confirmation...";
+    status.value = "Saving your confirmation...";
 
     try {
       const response = await fetch(`${baseUrl}/api/session.php`, {
@@ -228,13 +228,13 @@ function AgeGateApp() {
       const data = await response.json();
 
       if (!response.ok || !data.ok) {
-        throw new Error(data.message ?? "Could not save your confirmation.");
+        throw new Error(data.message ?? "We could not save your confirmation.");
       }
 
       visible.value = false;
       status.value = "";
     } catch (error) {
-      status.value = error instanceof Error ? error.message : "Unexpected error.";
+      status.value = error instanceof Error ? error.message : "Something went wrong. Please try again.";
     }
   }
 
@@ -245,9 +245,9 @@ function AgeGateApp() {
         <h2>Before you enter</h2>
         <p>This site contains adult content and is only for people who are 18 or older.</p>
         <ul class="age-gate__list">
-          <li>By entering, you confirm legal adult age.</li>
-          <li>This platform should keep creator identity and consent records.</li>
-          <li>Adult content must stay clearly marked as adult content.</li>
+          <li>By entering, you confirm that you are 18 or older.</li>
+          <li>Adult content stays clearly marked across the site.</li>
+          <li>You can leave this page at any time.</li>
         </ul>
         <div class="hero__actions">
           <button class="button" type="button" on:click=${confirmAge}>I am 18+</button>
@@ -301,7 +301,7 @@ function CookieNoticeApp() {
 function mountCatalog() {
   const target = document.querySelector("#catalog-app");
 
-  if (target && bootstrap.page === "home") {
+  if (target && bootstrap.page === "browse") {
     createApp(target, CatalogApp);
   }
 }
@@ -322,6 +322,48 @@ function mountCookieNotice() {
   }
 }
 
+function mountAdminMediaForms() {
+  if (bootstrap.page !== "admin") {
+    return;
+  }
+
+  const forms = document.querySelectorAll("[data-media-source-form]");
+
+  const syncGroups = (form, key) => {
+    const select = form.querySelector(`[data-media-switch="${key}"]`);
+
+    if (!(select instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const mode = select.value;
+    const groups = form.querySelectorAll(`[data-media-group="${key}"]`);
+
+    groups.forEach((group) => {
+      const visible = group.dataset.mediaMode === mode;
+      group.style.display = visible ? "" : "none";
+
+      group.querySelectorAll("input, select, textarea").forEach((field) => {
+        field.disabled = !visible;
+      });
+    });
+  };
+
+  forms.forEach((form) => {
+    ["video", "poster"].forEach((key) => {
+      const select = form.querySelector(`[data-media-switch="${key}"]`);
+
+      if (!(select instanceof HTMLSelectElement)) {
+        return;
+      }
+
+      syncGroups(form, key);
+      select.addEventListener("change", () => syncGroups(form, key));
+    });
+  });
+}
+
 mountCatalog();
 mountCookieNotice();
 mountAgeGate();
+mountAdminMediaForms();

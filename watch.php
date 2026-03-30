@@ -31,50 +31,35 @@ $user = current_user();
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
-    <div class="legal-bar">
-        <span>Adults only 18+</span>
-        <span>Age restricted</span>
-        <span>Adult content</span>
-    </div>
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
-        </a>
-        <nav class="site-nav">
-            <a href="<?= e(base_url()); ?>">Home</a>
-            <a href="<?= e(base_url('index.php#catalog')); ?>">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
-            <a href="<?= e(base_url('rules.php')); ?>"><?= e(rules_nav_label()); ?></a>
-            <a href="<?= e(base_url('account.php')); ?>">Account</a>
-            <?php if (is_admin()): ?>
-                <a href="<?= e(base_url('admin.php')); ?>">Admin</a>
-            <?php endif; ?>
-        </nav>
-        <div class="site-nav__actions">
-            <?php if ($user): ?>
-                <?php if (is_admin()): ?>
-                    <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Admin</a>
-                <?php endif; ?>
-                <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Dashboard</a>
-            <?php else: ?>
-                <a class="button button--ghost" href="<?= e(base_url('login.php')); ?>">Sign in</a>
-                <a class="button" href="<?= e(base_url('register.php')); ?>">Join</a>
-            <?php endif; ?>
-        </div>
-    </header>
+    <?php
+    $publicNavActive = 'browse';
+    $publicBarItems = ['Adults only 18+', 'Age restricted', 'Adult content'];
+    require ROOT_PATH . '/partials/public-header.php';
+    ?>
 
     <main class="page-shell page-shell--watch">
         <?php if (!$video): ?>
             <section class="auth-card">
                 <span class="eyebrow">404</span>
                 <h1>Video not found</h1>
-                <p>This item is not published or the slug is invalid.</p>
+                <p>This video is unavailable or has been removed.</p>
                 <a class="button" href="<?= e(base_url()); ?>">Back to browse</a>
             </section>
         <?php else: ?>
             <section class="watch-layout">
                 <div class="watch-stage">
+                    <div class="watch-stage__header">
+                        <div class="meta-row">
+                            <span class="pill"><?= e($video['category']); ?></span>
+                            <span class="pill pill--muted"><?= e($video['access_label']); ?></span>
+                        </div>
+                        <div class="hero__actions">
+                            <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Back to browse</a>
+                            <?php if ($videoRequiresPremium && !$canWatchVideo): ?>
+                                <a class="button" href="<?= e(base_url('premium.php')); ?>">See Premium</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                     <?php if ($videoRequiresPremium && !$canWatchVideo): ?>
                         <div class="watch-placeholder">
                             <img src="<?= e((string) $video['resolved_poster_url']); ?>" alt="<?= e($video['title']); ?>">
@@ -112,18 +97,21 @@ $user = current_user();
                             <img src="<?= e((string) $video['resolved_poster_url']); ?>" alt="<?= e($video['title']); ?>">
                             <div class="watch-placeholder__overlay">
                                 <span class="pill">Preview unavailable</span>
-                                <p>Upload a file or add a supported external URL to enable playback.</p>
+                                <p>Playback is not available for this video yet.</p>
                             </div>
                         </div>
                     <?php endif; ?>
+                    <div class="watch-stage__details">
+                        <h1><?= e($video['title']); ?></h1>
+                        <p><?= e($video['synopsis']); ?></p>
+                        <div class="watch-stage__meta">
+                            <span><strong>Creator</strong> <?= e($video['creator_name']); ?></span>
+                            <span><strong>Length</strong> <?= e($video['duration_label']); ?></span>
+                            <span><strong>Published</strong> <?= e($video['published_label']); ?></span>
+                        </div>
+                    </div>
                 </div>
                 <aside class="watch-sidebar">
-                    <div class="meta-row">
-                        <span class="pill"><?= e($video['category']); ?></span>
-                        <span class="pill pill--muted"><?= e($video['access_label']); ?></span>
-                    </div>
-                    <h1><?= e($video['title']); ?></h1>
-                    <p><?= e($video['synopsis']); ?></p>
                     <div class="watch-facts">
                         <div>
                             <span>Creator</span>
@@ -138,13 +126,13 @@ $user = current_user();
                             <strong><?= e($video['published_label']); ?></strong>
                         </div>
                         <div>
-                            <span>Source</span>
-                            <strong><?= e((string) $video['storage_provider']); ?> / <?= e((string) $video['source_type']); ?></strong>
+                            <span>Access</span>
+                            <strong><?= e($video['access_label']); ?></strong>
                         </div>
                     </div>
                     <div class="notice-card">
                         <strong>18+ notice</strong>
-                        <p>This page must stay clearly marked as adult content and age restricted.</p>
+                        <p>This page contains adult material and is only for viewers 18 or older.</p>
                     </div>
                     <?php if ($videoRequiresPremium): ?>
                         <div class="notice-card">
@@ -155,6 +143,11 @@ $user = current_user();
                             <?php endif; ?>
                         </div>
                     <?php endif; ?>
+                    <div class="notice-card">
+                        <strong>Need help?</strong>
+                        <p>Use the support page for account, billing, or legal contact details.</p>
+                        <a class="text-link" href="<?= e(base_url('support.php')); ?>">Open support</a>
+                    </div>
                     <?php if ($video['original_source_url'] && is_admin()): ?>
                         <div class="notice-card">
                             <strong>Original URL</strong>
@@ -169,7 +162,7 @@ $user = current_user();
                     <div class="section-heading">
                         <div>
                             <span class="eyebrow">RELATED</span>
-                            <h2>Same category</h2>
+                            <h2>More in this category</h2>
                         </div>
                     </div>
                     <div class="grid-fallback">
@@ -190,7 +183,7 @@ $user = current_user();
                                     <p><?= e($item['synopsis']); ?></p>
                                     <div class="video-card__footer">
                                         <span><?= e($item['creator_name']); ?></span>
-                                        <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $item['slug']))); ?>">Open video</a>
+                                        <a class="text-link" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $item['slug']))); ?>">Watch now</a>
                                     </div>
                                 </div>
                             </article>

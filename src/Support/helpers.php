@@ -333,7 +333,7 @@ function is_age_verified(): bool
 function ensure_logged_in(): void
 {
     if (!is_authenticated()) {
-        flash('error', 'Sign in to access this area.');
+        flash('error', 'Please sign in to continue.');
         redirect('login.php');
     }
 }
@@ -348,7 +348,7 @@ function ensure_admin(): void
     ensure_logged_in();
 
     if (!is_admin()) {
-        flash('error', 'Admin access only.');
+        flash('error', 'You do not have access to this area.');
         redirect('account.php');
     }
 }
@@ -359,7 +359,7 @@ function years_between(DateTimeImmutable $date): int
     return $today->diff($date)->y;
 }
 
-function format_datetime(?string $value, string $fallback = 'No date'): string
+function format_datetime(?string $value, string $fallback = 'Not available'): string
 {
     if (!$value) {
         return $fallback;

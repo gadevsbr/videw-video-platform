@@ -19,38 +19,11 @@ $user = current_user();
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
 <body class="<?= !is_age_verified() ? 'is-locked' : ''; ?>">
-    <div class="legal-bar">
-        <span>Adults only 18+</span>
-        <span>Legal information</span>
-        <span>Public site pages</span>
-    </div>
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <span class="brandmark__title"><?= e(brand_title()); ?></span>
-        </a>
-        <nav class="site-nav">
-            <a href="<?= e(base_url()); ?>">Home</a>
-            <a href="<?= e(base_url('index.php#catalog')); ?>">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
-            <a href="<?= e(base_url('rules.php')); ?>"><?= e(rules_nav_label()); ?></a>
-            <a href="<?= e(base_url('account.php')); ?>">Account</a>
-            <?php if (is_admin()): ?>
-                <a href="<?= e(base_url('admin.php')); ?>">Admin</a>
-            <?php endif; ?>
-        </nav>
-        <div class="site-nav__actions">
-            <?php if ($user): ?>
-                <?php if (is_admin()): ?>
-                    <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>">Admin</a>
-                <?php endif; ?>
-                <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Dashboard</a>
-            <?php else: ?>
-                <a class="button button--ghost" href="<?= e(base_url('login.php')); ?>">Sign in</a>
-                <a class="button" href="<?= e(base_url('register.php')); ?>">Join</a>
-            <?php endif; ?>
-        </div>
-    </header>
+    <?php
+    $publicNavActive = 'support';
+    $publicBarItems = ['Adults only 18+', 'Policies and support', 'Public information'];
+    require ROOT_PATH . '/partials/public-header.php';
+    ?>
 
     <main class="page-shell">
         <section class="hero legal-hero">
@@ -59,8 +32,8 @@ $user = current_user();
                 <h1><?= e($legalTitle); ?></h1>
                 <p><?= e($legalIntro); ?></p>
                 <div class="hero__actions">
-                    <a class="button" href="<?= e(base_url('index.php#catalog')); ?>">Back to browse</a>
-                    <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">Account</a>
+                    <a class="button" href="<?= e(base_url('support.php')); ?>">Open support</a>
+                    <a class="button button--ghost" href="<?= e(base_url('browse.php')); ?>">Browse videos</a>
                 </div>
             </div>
             <aside class="hero__aside legal-hero__aside">
@@ -70,7 +43,7 @@ $user = current_user();
                 </article>
                 <article class="notice-card">
                     <strong>Support</strong>
-                    <p><?= e((string) config('footer.support_copy', 'Questions, takedowns, and legal notices.')); ?></p>
+                    <p><?= e((string) config('footer.support_copy', 'Questions, account help, legal notices, and takedown requests.')); ?></p>
                     <a class="text-link" href="mailto:<?= e(config('app.support_email')); ?>"><?= e(config('app.support_email')); ?></a>
                 </article>
             </aside>
