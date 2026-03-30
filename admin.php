@@ -1455,32 +1455,50 @@ $currentScreen = $screenMeta[$screen];
                         <p>Adjust the filters or publish a new item.</p>
                     </div>
                 <?php else: ?>
-                    <div class="grid-fallback">
+                    <div class="admin-library-grid">
                         <?php foreach ($libraryVideos as $video): ?>
-                            <article class="video-card">
-                                <a class="video-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
+                            <article class="admin-library-card">
+                                <a class="admin-library-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
                                     <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
-                                    <div class="video-card__overlay">
-                                        <div class="meta-row">
+                                    <div class="admin-library-card__overlay">
+                                        <div class="admin-library-card__badges">
                                             <span class="pill"><?= e((string) $video['storage_provider']); ?></span>
                                             <span class="pill pill--muted"><?= e((string) $video['source_type']); ?></span>
                                         </div>
-                                        <span class="video-card__duration"><?= e((string) $video['duration_label']); ?></span>
+                                        <span class="admin-library-card__duration"><?= e((string) $video['duration_label']); ?></span>
                                     </div>
                                 </a>
-                                <div class="video-card__body">
-                                    <label class="bulk-select">
+                                <div class="admin-library-card__body">
+                                    <div class="admin-library-card__header">
+                                        <label class="bulk-select admin-library-card__select">
+                                            <input type="checkbox" name="video_ids[]" value="<?= e((string) $video['id']); ?>" form="library-bulk-form">
+                                            <span>Select</span>
+                                        </label>
+                                        <a class="text-link" href="<?= e(base_url('admin.php?screen=library&edit=' . urlencode((string) $video['id']))); ?>">Edit</a>
+                                    </div>
+                                    <div class="admin-library-card__identity">
+                                        <h3><?= e($video['title']); ?></h3>
+                                        <div class="admin-library-card__meta">
+                                            <span class="pill pill--muted"><?= e((string) $video['moderation_label']); ?></span>
+                                            <span class="pill pill--muted"><?= e((string) $video['access_label']); ?></span>
+                                            <?php if ((int) ($video['is_featured'] ?? 0) === 1): ?>
+                                                <span class="pill">Featured</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                    <p class="admin-library-card__summary"><?= e($video['synopsis']); ?></p>
+                                    <div class="admin-library-card__stats">
+                                        <span><strong>Creator</strong> <?= e($video['creator_name']); ?></span>
+                                        <span><strong>Category</strong> <?= e((string) $video['category']); ?></span>
+                                        <span><strong>Published</strong> <?= e((string) ($video['published_label'] ?? 'No date')); ?></span>
+                                    </div>
+                                </div>
+                                <div class="admin-library-card__aside">
+                                    <label class="bulk-select admin-library-card__select admin-library-card__select--mobile">
                                         <input type="checkbox" name="video_ids[]" value="<?= e((string) $video['id']); ?>" form="library-bulk-form">
                                         <span>Select</span>
                                     </label>
-                                    <h3><?= e($video['title']); ?></h3>
-                                    <p><?= e($video['synopsis']); ?></p>
-                                    <p class="form-note">Status: <?= e((string) $video['moderation_label']); ?></p>
-                                    <div class="video-card__footer">
-                                        <span><?= e($video['creator_name']); ?></span>
-                                        <a class="text-link" href="<?= e(base_url('admin.php?screen=library&edit=' . urlencode((string) $video['id']))); ?>">Edit</a>
-                                    </div>
-                                    <div class="admin-card-actions">
+                                    <div class="admin-library-card__actions">
                                         <form method="post">
                                             <input type="hidden" name="action" value="toggle_featured">
                                             <input type="hidden" name="video_id" value="<?= e((string) $video['id']); ?>">
