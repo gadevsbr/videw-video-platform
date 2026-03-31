@@ -149,7 +149,6 @@ The active storage driver and Wasabi credentials can be managed from `Admin > St
 
 ## Security Notes
 
-- `.env` and `storage/runtime` are ignored by Git and should stay private.
 - Delete `install.php` after the initial setup finishes.
 - The repository includes an Apache `.htaccess` for blocking sensitive files. If you deploy with `nginx` or `IIS`, add equivalent rules at the server level using the examples in `deploy/nginx.conf.example` and `deploy/web.config`.
 - The installer locks itself after a successful run. Remove the lock file manually only if you intentionally need to reinstall.
