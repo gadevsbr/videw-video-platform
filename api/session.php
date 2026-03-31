@@ -8,7 +8,7 @@ header('Content-Type: application/json; charset=UTF-8');
 
 if (!is_post_request()) {
     http_response_code(405);
-    echo json_encode(['ok' => false, 'message' => 'Método inválido.']);
+    echo json_encode(['ok' => false, 'message' => 'Method not allowed.']);
     exit;
 }
 
@@ -17,6 +17,14 @@ $payload = json_decode($rawBody ?: '{}', true);
 
 if (!is_array($payload)) {
     $payload = $_POST;
+}
+
+$csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $payload['_csrf'] ?? $_POST['_csrf'] ?? '');
+
+if (!verify_csrf($csrfToken, 'session_api')) {
+    http_response_code(419);
+    echo json_encode(['ok' => false, 'message' => 'Security token expired. Reload the page and try again.']);
+    exit;
 }
 
 $action = $payload['action'] ?? '';
@@ -34,4 +42,4 @@ if ($action === 'clear-age') {
 }
 
 http_response_code(422);
-echo json_encode(['ok' => false, 'message' => 'Ação inválida.']);
+echo json_encode(['ok' => false, 'message' => 'Invalid action.']);

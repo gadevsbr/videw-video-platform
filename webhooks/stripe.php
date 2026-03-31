@@ -36,10 +36,11 @@ try {
         ? 400
         : 500;
 
+    error_log('[VIDEW][Stripe webhook] ' . $message);
     http_response_code($statusCode);
     echo json_encode([
         'received' => false,
-        'error' => $message,
+        'error' => $statusCode === 400 ? 'Webhook payload rejected.' : 'Webhook processing failed.',
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }

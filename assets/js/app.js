@@ -3,6 +3,7 @@ import { createApp, computed, effect, html, signal } from "@bragamateus/gui";
 const bootstrap = window.__VIDEW__ ?? {};
 const baseUrl = bootstrap.baseUrl ?? "";
 const exitUrl = bootstrap.exitUrl ?? "https://www.google.com";
+const sessionApiCsrf = bootstrap.security?.sessionApiCsrf ?? "";
 const initialVideos = Array.isArray(bootstrap.videos) ? bootstrap.videos : [];
 const initialFilters = bootstrap.initialFilters ?? {};
 const catalogCopy = bootstrap.catalogCopy ?? {};
@@ -229,8 +230,9 @@ function AgeGateApp() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-CSRF-Token": sessionApiCsrf,
         },
-        body: JSON.stringify({ action: "verify-age" }),
+        body: JSON.stringify({ action: "verify-age", _csrf: sessionApiCsrf }),
       });
 
       const data = await response.json();

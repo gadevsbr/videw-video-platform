@@ -57,7 +57,8 @@ if ($requestMethod === 'POST' && !$installed) {
             $successMessages = installer_run($formData, $envPath, $lockFile, $schemaPath, $demoSeedPath);
             $installed = true;
         } catch (Throwable $exception) {
-            $errors[] = $exception->getMessage();
+            error_log('[VIDEW][Installer] ' . $exception->getMessage());
+            $errors[] = 'The installer could not finish the setup. Review the server error log and verify the database credentials, file permissions, and schema file.';
         }
     }
 }
@@ -342,7 +343,7 @@ $title = 'VIDEW Installer';
                     <?php if ($installed): ?>
                         <div class="alert alert--success">
                             <strong>Installer locked.</strong><br>
-                            This instance already finished installation. Remove <code><?= h(installer_relative_path($lockFile)); ?></code> only if you intentionally need to reinstall.
+                            This instance already finished installation. Remove <code><?= h(installer_relative_path($lockFile)); ?></code> only if you intentionally need to reinstall. Delete <code>install.php</code> from the server after setup.
                         </div>
                     <?php endif; ?>
 
@@ -440,6 +441,10 @@ $title = 'VIDEW Installer';
                             <li>
                                 <strong>Create the first account</strong>
                                 <span class="muted">The first registration becomes the initial admin.</span>
+                            </li>
+                            <li>
+                                <strong>Delete the installer</strong>
+                                <span class="muted">Remove <code>install.php</code> from production after setup finishes.</span>
                             </li>
                             <li>
                                 <strong>Review storage and billing</strong>
@@ -607,6 +612,7 @@ function installer_run(array $data, string $envPath, string $lockFile, string $s
     $messages[] = 'Prepared storage and runtime directories.';
 
     $scheme = parse_url($baseUrl, PHP_URL_SCHEME);
+    $host = (string) parse_url($baseUrl, PHP_URL_HOST);
     $envValues = [
         'VIDEW_APP_NAME' => $data['app_name'],
         'VIDEW_BASE_URL' => $baseUrl,
@@ -619,6 +625,10 @@ function installer_run(array $data, string $envPath, string $lockFile, string $s
         'VIDEW_DB_PASSWORD' => $data['db_password'],
         'VIDEW_LOCAL_STORAGE_BASE_URL' => rtrim($baseUrl, '/') . '/storage/uploads',
         'VIDEW_SESSION_SECURE_COOKIE' => strtolower((string) $scheme) === 'https' ? '1' : '0',
+        'VIDEW_TRUSTED_HOSTS' => $host,
+        'VIDEW_FORCE_HTTPS' => strtolower((string) $scheme) === 'https' ? '1' : '0',
+        'VIDEW_SECURITY_HSTS_ENABLED' => strtolower((string) $scheme) === 'https' ? '1' : '0',
+        'VIDEW_SECURITY_CSP_ENABLED' => '1',
     ];
 
     write_env_file_values($envPath, $envValues);
@@ -626,6 +636,7 @@ function installer_run(array $data, string $envPath, string $lockFile, string $s
 
     installer_lock($lockFile);
     $messages[] = 'Locked the installer. Create the first account on register.php to claim admin access.';
+    $messages[] = 'Delete install.php from the server now that setup is complete.';
 
     return $messages;
 }
@@ -651,7 +662,7 @@ function installer_connect(array $data): PDO
             ]
         );
     } catch (PDOException $exception) {
-        throw new RuntimeException('Could not connect to MySQL with the provided database settings. ' . $exception->getMessage());
+        throw new RuntimeException('Could not connect to MySQL with the provided database settings.');
     }
 
     return $pdo;

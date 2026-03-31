@@ -2156,7 +2156,7 @@ $currentScreen = $screenMeta[$screen];
                                 <span>Scripts rendered on public pages</span>
                                 <textarea name="public_head_scripts" rows="10" placeholder="<script async src=&quot;https://www.googletagmanager.com/gtag/js?id=...&quot;></script><?= PHP_EOL; ?><script>/* analytics or adsense code */</script>"><?= e($appSettings['public_head_scripts']); ?></textarea>
                             </label>
-                            <p class="form-note">These scripts are injected as-is into public page heads. Admin and installer screens are excluded.</p>
+                            <p class="form-note">These scripts are injected as-is into public page heads. Admin and installer screens are excluded. Only paste trusted snippets because they run with full access to the public frontend.</p>
                         </section>
                         <button class="button" type="submit">Save site settings</button>
                     </form>
@@ -2622,7 +2622,7 @@ $currentScreen = $screenMeta[$screen];
 
     <div id="age-gate-root"></div>
 
-    <script>
+    <script<?= nonce_attr(); ?>>
         window.__VIDEW__ = <?= page_bootstrap(default_bootstrap_payload('admin')); ?>;
     </script>
     <?= gui_runtime_tags(); ?>

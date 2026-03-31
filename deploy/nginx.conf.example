@@ -1,0 +1,19 @@
+location ~ /\.(?!well-known) {
+    deny all;
+}
+
+location ~ ^/(?:src|config|db|partials|storage/runtime)(?:/|$) {
+    deny all;
+}
+
+location ~* ^/(?:\.env(?:\.local|\.example)?|composer\.(?:json|lock)|package(?:-lock)?\.json|README\.md|CHANGELOG\.md|LICENSE|SECURITY\.md|CONTRIBUTING\.md)$ {
+    deny all;
+}
+
+location ~* \.(?:sql|bak|dist|ini|log)$ {
+    deny all;
+}
+
+location /storage/uploads/ {
+    try_files $uri =404;
+}

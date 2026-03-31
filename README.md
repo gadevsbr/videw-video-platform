@@ -66,6 +66,7 @@ If you update the dependency locally, run `npm run sync:gui` to refresh the comm
 4. Choose whether to import the optional demo catalog.
 5. Finish the install.
 6. Register the first account on `register.php` to become the initial admin.
+7. Delete `install.php` from the server after the setup completes.
 
 The installer writes `.env`, imports `db/schema.sql`, optionally imports `db/seed-demo.sql`, prepares `storage/`, and locks itself after success.
 
@@ -149,10 +150,13 @@ The active storage driver and Wasabi credentials can be managed from `Admin > St
 ## Security Notes
 
 - `.env` and `storage/runtime` are ignored by Git and should stay private.
-- The repository includes an Apache `.htaccess` for blocking sensitive files. If you deploy with `nginx` or `IIS`, add equivalent rules at the server level.
+- Delete `install.php` after the initial setup finishes.
+- The repository includes an Apache `.htaccess` for blocking sensitive files. If you deploy with `nginx` or `IIS`, add equivalent rules at the server level using the examples in `deploy/nginx.conf.example` and `deploy/web.config`.
 - The installer locks itself after a successful run. Remove the lock file manually only if you intentionally need to reinstall.
 - Premium local media is routed through `media.php` and access-checked server-side.
 - Password reset links are not shown publicly unless `VIDEW_DEBUG_EXPOSE_RESET_LINKS=1`.
+- Set `VIDEW_BASE_URL`, `VIDEW_TRUSTED_HOSTS`, and `VIDEW_SESSION_SECURE_COOKIE=1` correctly in production. Enable `VIDEW_TRUST_PROXY_HEADERS=1` only when you control the reverse proxy in front of PHP.
+- If you inject third-party scripts into the public `<head>`, review the default CSP and override `VIDEW_SECURITY_CONTENT_SECURITY_POLICY` when a provider requires additional origins.
 
 ## Frontend Development
 

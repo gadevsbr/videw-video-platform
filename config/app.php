@@ -29,6 +29,17 @@ return [
     ],
     'security' => [
         'expose_reset_links' => env_flag('VIDEW_DEBUG_EXPOSE_RESET_LINKS', false),
+        'trusted_hosts' => array_values(array_filter(array_map(
+            static fn (string $host): string => strtolower(trim($host)),
+            explode(',', (string) env_value('VIDEW_TRUSTED_HOSTS', ''))
+        ))),
+        'trust_proxy_headers' => env_flag('VIDEW_TRUST_PROXY_HEADERS', false),
+        'force_https' => env_flag('VIDEW_FORCE_HTTPS', false),
+        'hsts_enabled' => env_flag('VIDEW_SECURITY_HSTS_ENABLED', false),
+        'hsts_max_age' => env_int('VIDEW_SECURITY_HSTS_MAX_AGE', 31536000),
+        'csp_enabled' => env_flag('VIDEW_SECURITY_CSP_ENABLED', true),
+        'csp_report_only' => env_flag('VIDEW_SECURITY_CSP_REPORT_ONLY', false),
+        'content_security_policy' => (string) env_value('VIDEW_SECURITY_CONTENT_SECURITY_POLICY', ''),
     ],
     'storage' => [
         'local_root' => project_path((string) env_value('VIDEW_LOCAL_STORAGE_ROOT', 'storage/uploads')),

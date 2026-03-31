@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-03-31
+
+### Added
+- Added configurable production security settings for trusted hosts, proxy header trust, forced HTTPS, HSTS, and CSP in `.env.example` and `config/app.php`.
+- Added deploy examples for `nginx` and `IIS` in `deploy/nginx.conf.example` and `deploy/web.config` to help block sensitive files outside Apache environments.
+- Added a CSP nonce flow for the public and admin bootstrap scripts so inline page bootstrapping can stay compatible with a stricter `Content-Security-Policy`.
+- Added CSRF protection to `api/session.php` and exposed the corresponding frontend token through the page bootstrap payload.
+
+### Changed
+- Stopped deriving public absolute URLs from arbitrary request hosts and now prefer the configured base URL plus trusted-host validation.
+- Updated the bootstrap layer to emit `Content-Security-Policy`, optional `Strict-Transport-Security`, and safer HTTPS-aware cookie handling.
+- Updated the installer to seed safer production defaults for trusted hosts, HTTPS, HSTS, and CSP when the detected base URL uses `https`.
+- Updated the admin wording around public head scripts to warn that arbitrary snippets run with full access to the public frontend.
+- Updated the README security guidance to cover host validation, reverse proxies, non-Apache blocking rules, CSP, and deleting `install.php` after installation.
+
+### Fixed
+- Fixed public error leakage in `webhooks/stripe.php` by replacing raw exception messages with generic webhook responses while keeping details in the server log.
+- Fixed installer-side error exposure by removing raw database exception details from the public setup flow.
+- Fixed the session API so age-gate state changes now require a valid CSRF token instead of allowing unauthenticated state mutation within the active session.
+
 ## [1.0.0] - 2026-03-31
 
 ### Added

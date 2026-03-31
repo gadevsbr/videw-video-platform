@@ -194,7 +194,7 @@ clear_old_input();
     <div id="cookie-notice-root"></div>
     <div id="age-gate-root"></div>
 
-    <script>
+    <script<?= nonce_attr(); ?>>
         window.__VIDEW__ = <?= page_bootstrap($bootPayload); ?>;
     </script>
     <?= gui_runtime_tags(); ?>

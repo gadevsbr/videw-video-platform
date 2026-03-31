@@ -21,9 +21,7 @@ function config(string $key, mixed $default = null): mixed
 function base_url(string $path = ''): string
 {
     $configuredBaseUrl = rtrim((string) config('app.base_url', ''), '/');
-    $baseUrl = runtime_should_use_request_origin($configuredBaseUrl)
-        ? request_url()
-        : $configuredBaseUrl;
+    $baseUrl = $configuredBaseUrl !== '' ? $configuredBaseUrl : request_url();
 
     if ($path === '') {
         return $baseUrl;
@@ -41,19 +39,115 @@ function asset(string $path): string
     return base_url($path);
 }
 
-function request_origin(): string
+function request_is_https(): bool
 {
-    $host = trim((string) ($_SERVER['HTTP_HOST'] ?? ''));
+    $https = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
+    $https = $https || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
+
+    if ($https) {
+        return true;
+    }
+
+    if (!(bool) config('security.trust_proxy_headers', false)) {
+        return false;
+    }
+
+    $forwardedProto = strtolower(trim((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')));
+    $forwardedSsl = strtolower(trim((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')));
+
+    return $forwardedProto === 'https' || $forwardedSsl === 'on';
+}
+
+function request_scheme(): string
+{
+    return request_is_https() ? 'https' : 'http';
+}
+
+function configured_base_origin(): string
+{
+    return url_origin((string) config('app.base_url', ''));
+}
+
+function configured_base_host(): string
+{
+    $host = (string) parse_url((string) config('app.base_url', ''), PHP_URL_HOST);
+    return strtolower(trim($host));
+}
+
+/**
+ * @return array<int, string>
+ */
+function trusted_hosts(): array
+{
+    $hosts = config('security.trusted_hosts', []);
+
+    if (!is_array($hosts)) {
+        $hosts = [];
+    }
+
+    $normalized = [];
+
+    foreach ($hosts as $host) {
+        if (!is_string($host)) {
+            continue;
+        }
+
+        $clean = strtolower(trim($host));
+
+        if ($clean !== '') {
+            $normalized[] = $clean;
+        }
+    }
+
+    $configuredHost = configured_base_host();
+
+    if ($configuredHost !== '') {
+        $normalized[] = $configuredHost;
+    }
+
+    return array_values(array_unique($normalized));
+}
+
+function request_host(): string
+{
+    $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
 
     if ($host === '') {
         return '';
     }
 
-    $https = !empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off';
-    $https = $https || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
-    $scheme = $https ? 'https' : 'http';
+    if (preg_match('/^[a-z0-9.-]+(?::\d+)?$/', $host) !== 1) {
+        return '';
+    }
 
-    return $scheme . '://' . $host;
+    $trustedHosts = trusted_hosts();
+
+    if ($trustedHosts === []) {
+        return $host;
+    }
+
+    foreach ($trustedHosts as $trustedHost) {
+        if ($host === $trustedHost) {
+            return $host;
+        }
+
+        if (str_contains($host, ':') && strtok($host, ':') === $trustedHost) {
+            return $host;
+        }
+    }
+
+    return '';
+}
+
+function request_origin(): string
+{
+    $host = request_host();
+
+    if ($host === '') {
+        return configured_base_origin();
+    }
+
+    return request_scheme() . '://' . $host;
 }
 
 function request_base_path(): string
@@ -90,25 +184,6 @@ function request_url(string $path = ''): string
     return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
 }
 
-function runtime_should_use_request_origin(string $configuredUrl): bool
-{
-    $configuredUrl = trim($configuredUrl);
-
-    if ($configuredUrl === '') {
-        return true;
-    }
-
-    $requestOrigin = request_origin();
-
-    if ($requestOrigin === '') {
-        return false;
-    }
-
-    $configuredOrigin = url_origin($configuredUrl);
-
-    return $configuredOrigin !== '' && $configuredOrigin !== $requestOrigin;
-}
-
 function url_origin(string $url): string
 {
     $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
@@ -126,7 +201,7 @@ function local_storage_public_base_url(?string $configuredUrl = null): string
 {
     $configuredUrl = rtrim(trim((string) $configuredUrl), '/');
 
-    if ($configuredUrl === '' || runtime_should_use_request_origin($configuredUrl)) {
+    if ($configuredUrl === '') {
         return base_url('storage/uploads');
     }
 
@@ -151,7 +226,7 @@ function gui_runtime_tags(): string
         $importMap = '{"imports":{}}';
     }
 
-    return '<script type="importmap">' . $importMap . '</script>'
+    return '<script type="importmap"' . nonce_attr() . '>' . $importMap . '</script>'
         . "\n"
         . '<script type="module" src="' . e(asset('assets/js/app.js')) . '"></script>';
 }
@@ -185,6 +260,68 @@ function public_head_markup(): string
     }
 
     return $scripts . "\n";
+}
+
+function csp_nonce(): string
+{
+    static $nonce = null;
+
+    if (!is_string($nonce) || $nonce === '') {
+        $nonce = base64_encode(random_bytes(18));
+    }
+
+    return $nonce;
+}
+
+function nonce_attr(): string
+{
+    return ' nonce="' . e(csp_nonce()) . '"';
+}
+
+function content_security_policy_header(): string
+{
+    $configuredPolicy = trim((string) config('security.content_security_policy', ''));
+
+    if ($configuredPolicy !== '') {
+        return $configuredPolicy;
+    }
+
+    $scriptSources = [
+        "'self'",
+        "'nonce-" . csp_nonce() . "'",
+        'https://js.stripe.com',
+        'https://www.googletagmanager.com',
+        'https://www.google-analytics.com',
+        'https://ssl.google-analytics.com',
+        'https://pagead2.googlesyndication.com',
+        'https://partner.googleadservices.com',
+        'https://www.googletagservices.com',
+    ];
+
+    if (trim((string) config('app.public_head_scripts', '')) !== '') {
+        $scriptSources[] = "'unsafe-inline'";
+    }
+
+    $directives = [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'self'",
+        "form-action 'self' https://checkout.stripe.com",
+        'script-src ' . implode(' ', $scriptSources),
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data: https://fonts.gstatic.com",
+        "connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://region1.google-analytics.com https://pagead2.googlesyndication.com",
+        "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://geo.dailymotion.com",
+        "media-src 'self' blob: https:",
+    ];
+
+    if (strtolower((string) parse_url((string) config('app.base_url', ''), PHP_URL_SCHEME)) === 'https' || request_is_https()) {
+        $directives[] = 'upgrade-insecure-requests';
+    }
+
+    return implode('; ', $directives);
 }
 
 function creator_avatar_fallback(string $name): string
@@ -1173,6 +1310,12 @@ function poster_data_url(string $title, string $category, int $tone = 0): string
 
 function page_bootstrap(array $payload): string
 {
+    $payload['security'] ??= [];
+
+    if (!isset($payload['security']['sessionApiCsrf'])) {
+        $payload['security']['sessionApiCsrf'] = csrf_token('session_api');
+    }
+
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     return $json ?: '{}';
 }
