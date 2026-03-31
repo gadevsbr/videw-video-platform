@@ -4,11 +4,22 @@ const bootstrap = window.__VIDEW__ ?? {};
 const baseUrl = bootstrap.baseUrl ?? "";
 const exitUrl = bootstrap.exitUrl ?? "https://www.google.com";
 const initialVideos = Array.isArray(bootstrap.videos) ? bootstrap.videos : [];
+const initialFilters = bootstrap.initialFilters ?? {};
 const catalogCopy = bootstrap.catalogCopy ?? {};
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 function watchUrl(slug) {
   return `${baseUrl}/watch.php?slug=${encodeURIComponent(slug)}`;
+}
+
+function initials(value) {
+  const input = `${value ?? ""}`.trim();
+
+  if (input === "") {
+    return "V";
+  }
+
+  return input.slice(0, 1).toUpperCase();
 }
 
 function sortVideos(videos, sortMode) {
@@ -70,25 +81,20 @@ function sortToggle(mode, label, sort) {
 function renderVideoCard(video) {
   const posterUrl = video.resolved_listing_poster_url ?? video.listing_poster_url ?? video.resolved_poster_url ?? video.poster_url;
   const href = watchUrl(video.slug);
+  const posterPosition = video.poster_object_position ?? `${video.poster_focus_x ?? 50}% ${video.poster_focus_y ?? 50}%`;
 
   return html`
-    <article class="video-card">
-      <a class="video-card__media" href=${href}>
-        <img src=${posterUrl} alt=${video.title}>
-        <div class="video-card__overlay">
-          <div class="meta-row">
-            <span class="pill">${video.category}</span>
-            <span class="pill pill--muted">${video.access_label}</span>
-          </div>
-          <span class="video-card__duration">${video.duration_label}</span>
-        </div>
+    <article class="front-feed-card">
+      <a class="front-feed-card__thumb" href=${href}>
+        <img src=${posterUrl} alt=${video.title} style=${`object-position: ${posterPosition};`}>
+        <span class="front-duration">${video.duration_label}</span>
       </a>
-      <div class="video-card__body">
-        <h3>${video.title}</h3>
-        <p>${video.synopsis}</p>
-        <div class="video-card__footer">
-          <span>${video.creator_name}</span>
-          <a class="text-link" href=${href}>${catalogCopy.watchNow ?? "Watch now"}</a>
+      <div class="front-feed-card__body">
+        <div class="front-avatar">${initials(video.creator_name)}</div>
+        <div class="front-feed-card__meta">
+          <h3>${video.title}</h3>
+          <p>${video.creator_name}</p>
+          <span>${video.access_label} • ${video.published_label ?? video.duration_label}</span>
         </div>
       </div>
     </article>
@@ -107,10 +113,10 @@ function renderEmptyState() {
 
 function CatalogApp() {
   const videos = signal(initialVideos);
-  const query = signal("");
-  const category = signal("all");
-  const access = signal("all");
-  const sort = signal("recent");
+  const query = signal(typeof initialFilters.query === "string" ? initialFilters.query : "");
+  const category = signal(typeof initialFilters.category === "string" ? initialFilters.category : "all");
+  const access = signal(typeof initialFilters.access === "string" ? initialFilters.access : "all");
+  const sort = signal(typeof initialFilters.sort === "string" ? initialFilters.sort : "recent");
 
   const categories = computed(() => {
     const list = videos.value.map((video) => video.category);
@@ -308,6 +314,133 @@ function mountCatalog() {
   }
 }
 
+function mountWatchMedia() {
+  const players = document.querySelectorAll(".watch-player");
+
+  players.forEach((player) => {
+    if (!(player instanceof HTMLVideoElement)) {
+      return;
+    }
+
+    const shell = player.closest(".watch-player-shell");
+
+    if (!(shell instanceof HTMLElement)) {
+      return;
+    }
+
+    const applyAspect = () => {
+      const width = player.videoWidth;
+      const height = player.videoHeight;
+
+      if (width <= 0 || height <= 0) {
+        return;
+      }
+
+      const ratio = width / height;
+      shell.style.setProperty("--watch-media-ratio", `${ratio}`);
+      shell.classList.toggle("is-portrait", ratio < 1);
+      shell.classList.toggle("is-landscape", ratio >= 1);
+    };
+
+    if (player.readyState >= 1) {
+      applyAspect();
+    } else {
+      player.addEventListener("loadedmetadata", applyAspect, { once: true });
+    }
+  });
+}
+
+function mountPublicShell() {
+  const header = document.querySelector(".site-header.shell-header");
+  const syncShellMetrics = () => {
+    if (!(document.body instanceof HTMLBodyElement) || !document.body.classList.contains("public-layout")) {
+      return;
+    }
+
+    if (!(header instanceof HTMLElement)) {
+      return;
+    }
+
+    const height = Math.ceil(header.getBoundingClientRect().height);
+
+    if (height > 0) {
+      document.body.style.setProperty("--shell-header-height", `${height}px`);
+    }
+  };
+
+  syncShellMetrics();
+
+  if (header instanceof HTMLElement) {
+    if ("ResizeObserver" in window) {
+      const observer = new ResizeObserver(() => {
+        syncShellMetrics();
+      });
+
+      observer.observe(header);
+    }
+
+    window.addEventListener("resize", syncShellMetrics, { passive: true });
+    window.addEventListener("load", syncShellMetrics, { once: true });
+  }
+
+  const toggle = document.querySelector("[data-shell-menu]");
+  const sidebar = document.querySelector("[data-shell-sidebar]");
+  const overlay = document.querySelector("[data-shell-overlay]");
+
+  if (!(toggle instanceof HTMLButtonElement) || !(sidebar instanceof HTMLElement) || !(overlay instanceof HTMLElement)) {
+    return;
+  }
+
+  const closeMenu = () => {
+    sidebar.classList.remove("is-visible");
+    overlay.classList.remove("is-visible");
+    document.body.classList.remove("shell-nav-open");
+    toggle.setAttribute("aria-expanded", "false");
+  };
+
+  const openMenu = () => {
+    sidebar.classList.add("is-visible");
+    overlay.classList.add("is-visible");
+    document.body.classList.add("shell-nav-open");
+    toggle.setAttribute("aria-expanded", "true");
+  };
+
+  toggle.setAttribute("aria-expanded", "false");
+
+  toggle.addEventListener("click", () => {
+    if (sidebar.classList.contains("is-visible")) {
+      closeMenu();
+      return;
+    }
+
+    openMenu();
+  });
+
+  overlay.addEventListener("click", closeMenu);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeMenu();
+    }
+  });
+
+  sidebar.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", () => {
+      if (window.innerWidth <= 1180) {
+        closeMenu();
+      }
+    });
+  });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 1180) {
+      closeMenu();
+    }
+
+    syncShellMetrics();
+  });
+}
+
 function mountAgeGate() {
   const target = document.querySelector("#age-gate-root");
 
@@ -325,7 +458,7 @@ function mountCookieNotice() {
 }
 
 function mountAdminMediaForms() {
-  if (bootstrap.page !== "admin") {
+  if (!["admin", "studio"].includes(bootstrap.page)) {
     return;
   }
 
@@ -351,6 +484,104 @@ function mountAdminMediaForms() {
     });
   };
 
+  const mountPosterFraming = (form) => {
+    const framing = form.querySelector("[data-poster-framing]");
+
+    if (!(framing instanceof HTMLElement)) {
+      return;
+    }
+
+    const previewImages = framing.querySelectorAll("[data-poster-preview-image]");
+    const focusX = form.querySelector('[data-poster-focus="x"]');
+    const focusY = form.querySelector('[data-poster-focus="y"]');
+    const focusXValueNode = framing.querySelector('[data-poster-focus-value="x"]');
+    const focusYValueNode = framing.querySelector('[data-poster-focus-value="y"]');
+    const posterMode = form.querySelector('[data-media-switch="poster"]');
+    const posterUrlInput = form.querySelector('input[name="poster_external_url"]');
+    const posterFileInput = form.querySelector('input[name="poster_file"]');
+    const fallbackPoster = framing.dataset.currentPoster ?? "";
+    let objectUrl = "";
+    let activeFile = null;
+
+    const releaseObjectUrl = () => {
+      if (objectUrl !== "") {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = "";
+      }
+
+      activeFile = null;
+    };
+
+    const resolvePreviewSource = () => {
+      const mode = posterMode instanceof HTMLSelectElement ? posterMode.value : "";
+
+      if (mode === "url" && posterUrlInput instanceof HTMLInputElement) {
+        return posterUrlInput.value.trim();
+      }
+
+      if (mode === "upload" && posterFileInput instanceof HTMLInputElement && posterFileInput.files?.[0]) {
+        const nextFile = posterFileInput.files[0];
+
+        if (objectUrl === "" || activeFile !== nextFile) {
+          releaseObjectUrl();
+          objectUrl = URL.createObjectURL(nextFile);
+          activeFile = nextFile;
+        }
+
+        return objectUrl;
+      }
+
+      releaseObjectUrl();
+      return fallbackPoster;
+    };
+
+    const syncPreview = () => {
+      const focusXValue = focusX instanceof HTMLInputElement ? focusX.value : "50";
+      const focusYValue = focusY instanceof HTMLInputElement ? focusY.value : "50";
+      const src = resolvePreviewSource();
+      const visible = src !== "";
+
+      if (focusXValueNode instanceof HTMLElement) {
+        focusXValueNode.textContent = `${focusXValue}%`;
+      }
+
+      if (focusYValueNode instanceof HTMLElement) {
+        focusYValueNode.textContent = `${focusYValue}%`;
+      }
+
+      framing.classList.toggle("is-empty", !visible);
+
+      previewImages.forEach((image) => {
+        if (!(image instanceof HTMLImageElement)) {
+          return;
+        }
+
+        image.style.objectPosition = `${focusXValue}% ${focusYValue}%`;
+
+        if (visible) {
+          image.src = src;
+        } else {
+          image.removeAttribute("src");
+        }
+      });
+    };
+
+    syncPreview();
+
+    [focusX, focusY, posterMode, posterUrlInput, posterFileInput].forEach((field) => {
+      if (!(field instanceof HTMLElement)) {
+        return;
+      }
+
+      const eventName = field instanceof HTMLInputElement && field.type === "file" ? "change" : "input";
+      field.addEventListener(eventName, syncPreview);
+
+      if (eventName !== "change") {
+        field.addEventListener("change", syncPreview);
+      }
+    });
+  };
+
   forms.forEach((form) => {
     ["video", "poster"].forEach((key) => {
       const select = form.querySelector(`[data-media-switch="${key}"]`);
@@ -362,10 +593,62 @@ function mountAdminMediaForms() {
       syncGroups(form, key);
       select.addEventListener("change", () => syncGroups(form, key));
     });
+
+    mountPosterFraming(form);
   });
 }
 
+function mountCopyEditor() {
+  const root = document.querySelector("[data-copy-editor]");
+
+  if (!(root instanceof HTMLElement)) {
+    return;
+  }
+
+  const selector = root.querySelector("[data-copy-section-selector]");
+  const summary = root.querySelector("[data-copy-section-summary]");
+  const panels = document.querySelectorAll("[data-copy-section-panel]");
+
+  if (!(selector instanceof HTMLSelectElement) || !(summary instanceof HTMLElement) || panels.length === 0) {
+    return;
+  }
+
+  const updateActiveSection = () => {
+    const activeId = selector.value;
+
+    panels.forEach((panel) => {
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+
+      const matches = panel.dataset.copySectionPanel === activeId;
+      panel.hidden = !matches;
+    });
+
+    const activeOption = selector.selectedOptions[0];
+    const activePanel = Array.from(panels).find((panel) => panel instanceof HTMLElement && panel.dataset.copySectionPanel === activeId);
+    const title = activeOption?.textContent?.trim() || "Copy";
+    const description = activePanel instanceof HTMLElement ? activePanel.querySelector(".admin-form-section__header p")?.textContent?.trim() ?? "" : "";
+    const titleNode = summary.querySelector("strong");
+    const descriptionNode = summary.querySelector("p");
+
+    if (titleNode instanceof HTMLElement) {
+      titleNode.textContent = title;
+    }
+
+    if (descriptionNode instanceof HTMLElement) {
+      descriptionNode.textContent = description;
+    }
+  };
+
+  selector.addEventListener("change", updateActiveSection);
+  updateActiveSection();
+}
+
 mountCatalog();
+mountWatchMedia();
+mountPublicShell();
 mountCookieNotice();
 mountAgeGate();
 mountAdminMediaForms();
+mountCopyEditor();

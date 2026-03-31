@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/src/bootstrap.php';
 
 use App\Repositories\AuditLogRepository;
+use App\Repositories\CreatorApplicationRepository;
 use App\Repositories\SettingsRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\VideoRepository;
@@ -16,19 +17,32 @@ ensure_admin();
 
 $settingsRepository = new SettingsRepository();
 $auditLogs = new AuditLogRepository();
+$creatorApplications = new CreatorApplicationRepository();
 $usersRepository = new UserRepository();
 $videoRepository = new VideoRepository();
 $adminVideos = new AdminVideoService();
 $mediaAccess = new MediaAccessService();
 $billing = new BillingService();
 $dbReady = $settingsRepository->dbReady();
-$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'users', 'settings', 'copy', 'legal', 'activity'];
+$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'creator_requests', 'users', 'settings', 'copy', 'legal', 'activity'];
 $screen = (string) ($_GET['screen'] ?? 'overview');
 $screen = in_array($screen, $validScreens, true) ? $screen : 'overview';
 $screenUrl = static fn (string $target): string => base_url('admin.php?screen=' . urlencode($target));
 $actorId = (int) (current_user()['id'] ?? 0);
 
 if (is_post_request()) {
+    if (request_exceeded_post_max_size()) {
+        flash(
+            'error',
+            'The upload is larger than the server limit. Increase post_max_size and upload_max_filesize or upload a smaller file. Current limits: post_max_size '
+            . ini_size_label('post_max_size')
+            . ' and upload_max_filesize '
+            . ini_size_label('upload_max_filesize')
+            . '.'
+        );
+        redirect('admin.php?screen=' . $screen);
+    }
+
     if (!verify_csrf($_POST['_csrf'] ?? null, 'admin')) {
         flash('error', 'Security token expired. Try again.');
         redirect('admin.php?screen=' . $screen);
@@ -390,6 +404,55 @@ if (is_post_request()) {
         redirect('admin.php?screen=moderation');
     }
 
+    if ($action === 'review_creator_application') {
+        $applicationId = (int) ($_POST['application_id'] ?? 0);
+        $reviewStatus = trim((string) ($_POST['review_status'] ?? 'pending'));
+        $reviewNotes = trim((string) ($_POST['review_notes'] ?? ''));
+
+        try {
+            $application = $creatorApplications->findById($applicationId);
+
+            if (!$application) {
+                throw new RuntimeException('Creator request not found.');
+            }
+
+            $requestUser = $usersRepository->findById((int) ($application['user_id'] ?? 0));
+
+            if (!$requestUser) {
+                throw new RuntimeException('Creator account not found.');
+            }
+
+            if ($reviewStatus === 'approved') {
+                $resolvedSlug = $usersRepository->generateUniqueCreatorSlug((string) ($application['requested_slug'] ?? ''), (int) $requestUser['id']);
+
+                $usersRepository->updateCreatorProfile((int) $requestUser['id'], [
+                    'creator_display_name' => (string) ($application['requested_display_name'] ?? creator_public_name($requestUser)),
+                    'creator_slug' => $resolvedSlug,
+                    'creator_bio' => (string) ($application['requested_bio'] ?? ($requestUser['creator_bio'] ?? '')),
+                    'creator_avatar_url' => $requestUser['creator_avatar_url'] ?? null,
+                    'creator_avatar_path' => $requestUser['creator_avatar_path'] ?? null,
+                    'creator_avatar_storage_provider' => $requestUser['creator_avatar_storage_provider'] ?? null,
+                    'creator_banner_url' => $requestUser['creator_banner_url'] ?? null,
+                    'creator_banner_path' => $requestUser['creator_banner_path'] ?? null,
+                    'creator_banner_storage_provider' => $requestUser['creator_banner_storage_provider'] ?? null,
+                ]);
+                $usersRepository->updateAdminFields((int) $requestUser['id'], 'creator', (string) ($requestUser['status'] ?? 'active'));
+                $videoRepository->syncCreatorIdentity((int) $requestUser['id'], (string) ($application['requested_display_name'] ?? creator_public_name($requestUser)));
+            }
+
+            $creatorApplications->updateStatus($applicationId, $reviewStatus, $reviewNotes !== '' ? $reviewNotes : null);
+            $auditLogs->record($actorId ?: null, 'creator.reviewed', 'creator_application', $applicationId, 'Reviewed a creator request.', [
+                'status' => $reviewStatus,
+                'user_id' => (int) ($application['user_id'] ?? 0),
+            ]);
+            flash('success', $reviewStatus === 'approved' ? 'Creator request approved.' : ($reviewStatus === 'rejected' ? 'Creator request rejected.' : 'Creator request updated.'));
+        } catch (RuntimeException $exception) {
+            flash('error', $exception->getMessage());
+        }
+
+        redirect('admin.php?screen=creator_requests');
+    }
+
     if ($action === 'update_user') {
         $userId = (int) ($_POST['user_id'] ?? 0);
         $role = trim((string) ($_POST['role'] ?? 'member'));
@@ -475,6 +538,11 @@ $editingVideo = $editingVideoId > 0 ? $videoRepository->findById($editingVideoId
 $recentVideos = array_slice($allVideos, 0, 8);
 $stats = $videoRepository->stats();
 $adminStats = $videoRepository->adminStats();
+$creatorRequestStatus = trim((string) ($_GET['creator_request_status'] ?? 'pending'));
+$creatorRequestsPage = max(1, (int) ($_GET['creator_requests_page'] ?? 1));
+$creatorRequestsPagination = $dbReady ? $creatorApplications->paginate($creatorRequestStatus !== '' ? $creatorRequestStatus : 'pending', $creatorRequestsPage, 8) : ['items' => [], 'total' => 0, 'page' => 1, 'per_page' => 8, 'total_pages' => 1];
+$creatorRequests = $creatorRequestsPagination['items'];
+$creatorRequestStats = $creatorApplications->stats();
 $userSearch = trim((string) ($_GET['user_search'] ?? ''));
 $usersPage = max(1, (int) ($_GET['users_page'] ?? 1));
 $usersPagination = $dbReady ? $usersRepository->paginateAll($userSearch, $usersPage, 10) : ['items' => [], 'total' => 0, 'page' => 1, 'per_page' => 10, 'total_pages' => 1];
@@ -517,6 +585,24 @@ foreach ($copySettings as $copyKey => $copyValue) {
         'label' => ucwords(str_replace(['.', '_'], [' ', ' '], (string) $copyKey)),
         'type' => strlen((string) $copyValue) > 100 ? 'textarea' : 'text',
         'rows' => 4,
+    ];
+}
+
+$copySectionTabs = [];
+
+foreach ($copySections as $index => $copySection) {
+    $copySectionTabs[] = [
+        'id' => 'copy-section-' . ($index + 1),
+        'title' => (string) $copySection['title'],
+        'description' => (string) $copySection['description'],
+    ];
+}
+
+if ($copyExtraFields !== []) {
+    $copySectionTabs[] = [
+        'id' => 'copy-section-extra',
+        'title' => 'Additional copy keys',
+        'description' => 'Extra text keys detected automatically from the public text system.',
     ];
 }
 
@@ -665,6 +751,13 @@ $screenMeta = [
         'primary' => ['label' => 'Open library', 'href' => $screenUrl('library')],
         'secondary' => ['label' => 'Open activity', 'href' => $screenUrl('activity')],
     ],
+    'creator_requests' => [
+        'eyebrow' => 'CREATORS',
+        'title' => 'Review creator requests.',
+        'copy' => 'Approve or reject creator applications and decide who gets studio access.',
+        'primary' => ['label' => 'Open users', 'href' => $screenUrl('users')],
+        'secondary' => ['label' => 'Open activity', 'href' => $screenUrl('activity')],
+    ],
     'users' => [
         'eyebrow' => 'USERS',
         'title' => 'Manage roles and account status.',
@@ -708,6 +801,7 @@ $screenLabels = [
     'publish' => 'Publish',
     'library' => 'Library',
     'moderation' => 'Moderation',
+    'creator_requests' => 'Creator requests',
     'users' => 'Users',
     'settings' => 'Settings',
     'copy' => 'Copy',
@@ -717,7 +811,7 @@ $screenLabels = [
 $adminNavGroups = [
     'Control center' => ['overview'],
     'Content' => ['publish', 'library', 'moderation'],
-    'Members and revenue' => ['users', 'billing'],
+    'Members and revenue' => ['creator_requests', 'users', 'billing'],
     'Site' => ['settings', 'copy', 'legal'],
     'System' => ['storage', 'activity'],
 ];
@@ -731,28 +825,34 @@ $currentScreen = $screenMeta[$screen];
     <title>Admin | <?= e(config('app.name')); ?></title>
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
 </head>
-<body class="<?= e(page_lock_class('', false)); ?>">
+<body class="<?= e(trim(page_lock_class('admin-layout-page', false))); ?>">
     <div class="legal-bar">
-        <span>Admin area</span>
-        <span>Library management</span>
-        <span>Site settings</span>
+        <span>Admin workspace</span>
+        <span><?= e($screenLabels[$screen] ?? 'Overview'); ?></span>
+        <span><?= $dbReady ? 'Database ready' : 'Database pending'; ?></span>
     </div>
-    <header class="site-header">
-        <a class="brandmark" href="<?= e(base_url()); ?>">
-            <span class="brandmark__kicker"><?= e(brand_kicker()); ?></span>
-            <?php if (brand_title() !== ''): ?>
-                <span class="brandmark__title"><?= e(brand_title()); ?></span>
-            <?php endif; ?>
-        </a>
-        <nav class="site-nav">
+    <header class="site-header admin-topbar">
+        <div class="admin-topbar__brand">
+            <a class="shell-brand" href="<?= e(base_url()); ?>">
+                <span class="shell-brand__icon"></span>
+                <span class="shell-brand__wordmark">
+                    <?= e(config('app.name')); ?>
+                    <?php if (brand_title() !== ''): ?>
+                        <small><?= e(brand_title()); ?></small>
+                    <?php endif; ?>
+                </span>
+            </a>
+            <span class="pill pill--muted">Admin</span>
+        </div>
+        <nav class="site-nav admin-topbar__nav">
             <a href="<?= e(base_url()); ?>">Home</a>
             <a href="<?= e(base_url('browse.php')); ?>">Browse</a>
-            <a href="<?= e(base_url('premium.php')); ?>">Premium</a>
+            <a href="<?= e(base_url('studio.php')); ?>">Studio</a>
             <a href="<?= e(base_url('support.php')); ?>">Support</a>
-            <a href="<?= e(base_url('account.php')); ?>">Account</a>
         </nav>
-        <div class="site-nav__actions">
-            <span class="pill pill--muted">admin</span>
+        <div class="site-nav__actions admin-topbar__actions">
+            <a class="button button--ghost" href="<?= e(base_url('account.php')); ?>">My account</a>
+            <a class="button button--ghost" href="<?= e(base_url()); ?>">View site</a>
             <?= logout_button('Log out'); ?>
         </div>
     </header>
@@ -770,7 +870,12 @@ $currentScreen = $screenMeta[$screen];
                 <div class="admin-sidebar__intro">
                     <span class="eyebrow">ADMIN</span>
                     <strong><?= e(config('app.name')); ?></strong>
-                    <p>Use the sidebar to move between content, members, revenue, site, and system jobs.</p>
+                    <p>Run content, members, billing, and site settings from one workspace.</p>
+                </div>
+
+                <div class="admin-sidebar__utility">
+                    <a class="button" href="<?= e($screenUrl('publish')); ?>">New video</a>
+                    <a class="button button--ghost" href="<?= e($screenUrl('library')); ?>">Open library</a>
                 </div>
 
                 <?php if (!$dbReady): ?>
@@ -864,6 +969,12 @@ $currentScreen = $screenMeta[$screen];
                         <strong>Review drafts and flagged items</strong>
                         <p>Move items between draft, approved, and flagged with internal notes.</p>
                         <span class="text-link">Open moderation</span>
+                    </a>
+                    <a class="admin-link-card" href="<?= e($screenUrl('creator_requests')); ?>">
+                        <span class="eyebrow">CREATORS</span>
+                        <strong>Creator access requests</strong>
+                        <p>Review creator applications and approve studio access.</p>
+                        <span class="text-link">Open creator requests</span>
                     </a>
                     <a class="admin-link-card" href="<?= e($screenUrl('users')); ?>">
                         <span class="eyebrow">USERS</span>
@@ -1277,6 +1388,7 @@ $currentScreen = $screenMeta[$screen];
                             <div class="admin-form-section__header">
                                 <h3>Media source</h3>
                                 <p>Start by choosing how you want to add the video and the poster.</p>
+                                <p>Current server upload limits: video/poster file max <?= e(ini_size_label('upload_max_filesize')); ?>, full request max <?= e(ini_size_label('post_max_size')); ?>.</p>
                             </div>
                             <div class="admin-fields admin-fields--two">
                                 <label>
@@ -1590,7 +1702,7 @@ $currentScreen = $screenMeta[$screen];
                         <?php foreach ($libraryVideos as $video): ?>
                             <article class="admin-library-card">
                                 <a class="admin-library-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
-                                    <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
+                                    <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
                                     <div class="admin-library-card__overlay">
                                         <div class="admin-library-card__badges">
                                             <span class="pill"><?= e((string) $video['storage_provider']); ?></span>
@@ -1720,7 +1832,7 @@ $currentScreen = $screenMeta[$screen];
                                     <span>Select</span>
                                 </label>
                                 <div class="admin-workrow__thumb">
-                                    <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
+                                    <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
                                 </div>
                                 <div class="admin-workrow__main">
                                     <div class="admin-workrow__header">
@@ -1762,6 +1874,96 @@ $currentScreen = $screenMeta[$screen];
                         <nav class="pagination">
                             <?php for ($pageNumber = 1; $pageNumber <= (int) $moderationPagination['total_pages']; $pageNumber++): ?>
                                 <a class="<?= (int) $moderationPagination['page'] === $pageNumber ? 'chip chip--active' : 'chip'; ?>" href="<?= e($queryUrl(['moderation_page' => $pageNumber])); ?>"><?= e((string) $pageNumber); ?></a>
+                            <?php endfor; ?>
+                        </nav>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($screen === 'creator_requests'): ?>
+            <section class="catalog-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">CREATORS</span>
+                        <h2>Creator request queue</h2>
+                    </div>
+                    <p>Approve or reject requests before creator studio access is unlocked.</p>
+                </div>
+                <div class="admin-summary-grid">
+                    <article class="mini-stat">
+                        <span>Pending</span>
+                        <strong><?= e((string) ($creatorRequestStats['pending'] ?? 0)); ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Approved</span>
+                        <strong><?= e((string) ($creatorRequestStats['approved'] ?? 0)); ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Rejected</span>
+                        <strong><?= e((string) ($creatorRequestStats['rejected'] ?? 0)); ?></strong>
+                    </article>
+                </div>
+                <div class="admin-screen-nav">
+                    <?php foreach (['pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'] as $value => $label): ?>
+                        <a class="<?= $creatorRequestStatus === $value ? 'chip chip--active' : 'chip'; ?>" href="<?= e($queryUrl(['creator_request_status' => $value, 'creator_requests_page' => 1])); ?>"><?= e($label); ?></a>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php if ($creatorRequests === []): ?>
+                    <div class="notice-card">
+                        <strong>No creator requests in this queue</strong>
+                        <p>Switch the filter or wait for a new creator application.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="admin-worklist">
+                        <?php foreach ($creatorRequests as $request): ?>
+                            <article class="admin-workrow">
+                                <div class="admin-workrow__main">
+                                    <div class="admin-workrow__header">
+                                        <div class="meta-row">
+                                            <span class="pill"><?= e((string) ($request['status'] ?? 'pending')); ?></span>
+                                            <span class="pill pill--muted"><?= e((string) ($request['created_label'] ?? '')); ?></span>
+                                        </div>
+                                        <h3><?= e((string) ($request['requested_display_name'] ?? '')); ?></h3>
+                                    </div>
+                                    <p class="admin-workrow__summary"><?= e((string) ($request['user_display_name'] ?? 'Member')); ?> / <?= e((string) ($request['user_email'] ?? '')); ?></p>
+                                    <div class="admin-workrow__meta">
+                                        <span class="form-note">Channel link: <?= e((string) ($request['requested_slug'] ?? '')); ?></span>
+                                    </div>
+                                    <?php if (!empty($request['requested_bio'])): ?>
+                                        <p class="form-note"><?= e((string) $request['requested_bio']); ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($request['review_notes'])): ?>
+                                        <p class="form-note"><strong>Review notes:</strong> <?= e((string) $request['review_notes']); ?></p>
+                                    <?php endif; ?>
+                                </div>
+                                <form method="post" class="admin-workrow__form">
+                                    <input type="hidden" name="action" value="review_creator_application">
+                                    <input type="hidden" name="application_id" value="<?= e((string) $request['id']); ?>">
+                                    <?= csrf_input('admin'); ?>
+                                    <label>
+                                        <span>Decision</span>
+                                        <select name="review_status">
+                                            <?php foreach (['approved' => 'Approve', 'rejected' => 'Reject', 'pending' => 'Keep pending'] as $value => $label): ?>
+                                                <option value="<?= e($value); ?>" <?= (string) $request['status'] === $value ? 'selected' : ''; ?>><?= e($label); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Notes</span>
+                                        <textarea name="review_notes" rows="3"><?= e((string) ($request['review_notes'] ?? '')); ?></textarea>
+                                    </label>
+                                    <button class="button" type="submit">Save review</button>
+                                </form>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <?php if (($creatorRequestsPagination['total_pages'] ?? 1) > 1): ?>
+                        <nav class="pagination">
+                            <?php for ($pageNumber = 1; $pageNumber <= (int) $creatorRequestsPagination['total_pages']; $pageNumber++): ?>
+                                <a class="<?= (int) $creatorRequestsPagination['page'] === $pageNumber ? 'chip chip--active' : 'chip'; ?>" href="<?= e($queryUrl(['creator_requests_page' => $pageNumber])); ?>"><?= e((string) $pageNumber); ?></a>
                             <?php endfor; ?>
                         </nav>
                     <?php endif; ?>
@@ -1991,8 +2193,23 @@ $currentScreen = $screenMeta[$screen];
                     <form method="post" class="admin-form-shell">
                         <input type="hidden" name="action" value="save_copy_settings">
                         <?= csrf_input('admin'); ?>
-                        <?php foreach ($copySections as $section): ?>
-                            <section class="admin-form-section">
+                        <div class="copy-editor-controls" data-copy-editor>
+                            <label class="copy-editor-controls__label">
+                                <span>Section</span>
+                                <select data-copy-section-selector>
+                                    <?php foreach ($copySectionTabs as $tab): ?>
+                                        <option value="<?= e($tab['id']); ?>"><?= e($tab['title']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </label>
+                            <div class="copy-editor-controls__summary" data-copy-section-summary>
+                                <strong><?= e($copySectionTabs[0]['title'] ?? 'Copy'); ?></strong>
+                                <p><?= e($copySectionTabs[0]['description'] ?? 'Edit the text used across public pages.'); ?></p>
+                            </div>
+                        </div>
+                        <?php foreach ($copySections as $index => $section): ?>
+                            <?php $panelId = 'copy-section-' . ($index + 1); ?>
+                            <section class="admin-form-section copy-editor-panel" data-copy-section-panel="<?= e($panelId); ?>"<?= $index === 0 ? '' : ' hidden'; ?>>
                                 <div class="admin-form-section__header">
                                     <h3><?= e((string) $section['title']); ?></h3>
                                     <p><?= e((string) $section['description']); ?></p>
@@ -2013,7 +2230,7 @@ $currentScreen = $screenMeta[$screen];
                             </section>
                         <?php endforeach; ?>
                         <?php if ($copyExtraFields !== []): ?>
-                            <section class="admin-form-section">
+                            <section class="admin-form-section copy-editor-panel" data-copy-section-panel="copy-section-extra" hidden>
                                 <div class="admin-form-section__header">
                                     <h3>Additional copy keys</h3>
                                     <p>These keys are generated automatically from the text system so every remaining public text stays editable too.</p>

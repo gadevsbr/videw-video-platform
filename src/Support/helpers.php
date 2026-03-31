@@ -187,6 +187,106 @@ function public_head_markup(): string
     return $scripts . "\n";
 }
 
+function creator_avatar_fallback(string $name): string
+{
+    $initial = mb_strtoupper(mb_substr(trim($name) !== '' ? $name : 'V', 0, 1));
+
+    $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="avatarBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f6b73c"/>
+      <stop offset="100%" stop-color="#ff8f1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="80" fill="url(#avatarBg)"/>
+  <text x="80" y="102" text-anchor="middle" fill="#0a0a0c" font-family="Arial, sans-serif" font-size="70" font-weight="700">{$initial}</text>
+</svg>
+SVG;
+
+    return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
+}
+
+function creator_banner_fallback(string $name): string
+{
+    $safeName = e($name !== '' ? $name : 'Creator');
+
+    $svg = <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="480" viewBox="0 0 1440 480">
+  <defs>
+    <linearGradient id="bannerBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a0c"/>
+      <stop offset="100%" stop-color="#17171d"/>
+    </linearGradient>
+    <linearGradient id="bannerAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffb12a"/>
+      <stop offset="100%" stop-color="#ff8f1f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1440" height="480" fill="url(#bannerBg)"/>
+  <circle cx="1140" cy="110" r="220" fill="rgba(255,255,255,0.04)"/>
+  <circle cx="1280" cy="140" r="160" fill="rgba(255,255,255,0.03)"/>
+  <rect x="88" y="112" width="122" height="8" rx="4" fill="url(#bannerAccent)"/>
+  <text x="88" y="228" fill="#ffffff" font-family="Arial, sans-serif" font-size="68" font-weight="700">{$safeName}</text>
+  <text x="88" y="282" fill="rgba(255,255,255,0.58)" font-family="Arial, sans-serif" font-size="24">Creator channel</text>
+</svg>
+SVG;
+
+    return 'data:image/svg+xml;charset=UTF-8,' . rawurlencode($svg);
+}
+
+function resolve_creator_media_asset(?string $url, ?string $path, ?string $provider, string $fallback): string
+{
+    $normalizedProvider = in_array($provider, ['local', 'wasabi', 'external'], true) ? $provider : null;
+    $normalizedUrl = trim((string) $url);
+    $normalizedPath = trim((string) $path);
+
+    if ($normalizedProvider === 'wasabi' && $normalizedPath !== '' && (string) config('storage.wasabi_private_bucket', '0') === '1') {
+        try {
+            $storage = new \App\Services\StorageManager();
+            $ttl = max(60, min(604800, (int) config('storage.wasabi_signed_url_ttl_seconds', 900)));
+
+            return $storage->wasabiClient()->presignGetObject($normalizedPath, $ttl);
+        } catch (Throwable) {
+            return $normalizedUrl !== '' ? $normalizedUrl : $fallback;
+        }
+    }
+
+    if ($normalizedProvider === 'local' && $normalizedPath !== '' && $normalizedUrl === '') {
+        return rtrim(local_storage_public_base_url((string) config('storage.local_public_base_url', '')), '/') . '/' . ltrim($normalizedPath, '/');
+    }
+
+    return $normalizedUrl !== '' ? $normalizedUrl : $fallback;
+}
+
+function creator_public_name(?array $user, string $fallback = 'Creator'): string
+{
+    if (!is_array($user)) {
+        return $fallback;
+    }
+
+    $creatorName = trim((string) ($user['creator_display_name'] ?? ''));
+
+    if ($creatorName !== '') {
+        return $creatorName;
+    }
+
+    $displayName = trim((string) ($user['display_name'] ?? ''));
+
+    return $displayName !== '' ? $displayName : $fallback;
+}
+
+function creator_profile_url(?array $user): ?string
+{
+    if (!is_array($user)) {
+        return null;
+    }
+
+    $slug = trim((string) ($user['creator_slug'] ?? ''));
+
+    return $slug !== '' ? base_url('channel.php?creator=' . urlencode($slug)) : null;
+}
+
 function copy_text(string $key, string $default = ''): string
 {
     return (string) config('copy.' . $key, $default);
@@ -243,6 +343,8 @@ function copy_admin_sections(): array
                 ['key' => 'header.nav.browse', 'label' => 'Nav: Browse', 'type' => 'text'],
                 ['key' => 'header.nav.premium', 'label' => 'Nav: Premium', 'type' => 'text'],
                 ['key' => 'header.nav.support', 'label' => 'Nav: Support', 'type' => 'text'],
+                ['key' => 'header.nav.studio', 'label' => 'Nav: Studio', 'type' => 'text'],
+                ['key' => 'header.nav.channel', 'label' => 'Nav: My channel', 'type' => 'text'],
                 ['key' => 'header.nav.admin', 'label' => 'Nav: Admin', 'type' => 'text'],
                 ['key' => 'header.nav.account', 'label' => 'Nav: My account', 'type' => 'text'],
                 ['key' => 'header.nav.sign_in', 'label' => 'Nav: Sign in', 'type' => 'text'],
@@ -664,6 +766,48 @@ function logout_button(string $label = 'Log out', string $classes = 'button butt
         . '</form>';
 }
 
+function ini_size_to_bytes(string $value): int
+{
+    $value = trim($value);
+
+    if ($value === '') {
+        return 0;
+    }
+
+    $unit = strtolower(substr($value, -1));
+    $number = (float) $value;
+
+    return match ($unit) {
+        'g' => (int) round($number * 1024 * 1024 * 1024),
+        'm' => (int) round($number * 1024 * 1024),
+        'k' => (int) round($number * 1024),
+        default => (int) round($number),
+    };
+}
+
+function ini_size_label(string $directive): string
+{
+    $value = trim((string) ini_get($directive));
+    return $value !== '' ? strtoupper($value) : 'server default';
+}
+
+function request_exceeded_post_max_size(): bool
+{
+    if (!is_post_request()) {
+        return false;
+    }
+
+    $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+
+    if ($contentLength <= 0) {
+        return false;
+    }
+
+    $postMaxSize = ini_size_to_bytes((string) ini_get('post_max_size'));
+
+    return $postMaxSize > 0 && $contentLength > $postMaxSize;
+}
+
 function verify_csrf(?string $token, string $key = 'default'): bool
 {
     $sessionToken = $_SESSION['_csrf'][$key] ?? null;
@@ -758,6 +902,17 @@ function current_user(bool $fresh = false): ?array
                 'stripe_subscription_id' => $freshUser['stripe_subscription_id'] ?? ($sessionUser['stripe_subscription_id'] ?? null),
                 'stripe_subscription_status' => $freshUser['stripe_subscription_status'] ?? ($sessionUser['stripe_subscription_status'] ?? null),
                 'mfa_enabled' => (int) ($freshUser['mfa_enabled'] ?? ($sessionUser['mfa_enabled'] ?? 0)),
+                'creator_display_name' => $freshUser['creator_display_name'] ?? ($sessionUser['creator_display_name'] ?? null),
+                'creator_slug' => $freshUser['creator_slug'] ?? ($sessionUser['creator_slug'] ?? null),
+                'creator_bio' => $freshUser['creator_bio'] ?? ($sessionUser['creator_bio'] ?? null),
+                'creator_avatar_url' => $freshUser['creator_avatar_url'] ?? ($sessionUser['creator_avatar_url'] ?? null),
+                'creator_avatar_path' => $freshUser['creator_avatar_path'] ?? ($sessionUser['creator_avatar_path'] ?? null),
+                'creator_avatar_storage_provider' => $freshUser['creator_avatar_storage_provider'] ?? ($sessionUser['creator_avatar_storage_provider'] ?? null),
+                'creator_banner_url' => $freshUser['creator_banner_url'] ?? ($sessionUser['creator_banner_url'] ?? null),
+                'creator_banner_path' => $freshUser['creator_banner_path'] ?? ($sessionUser['creator_banner_path'] ?? null),
+                'creator_banner_storage_provider' => $freshUser['creator_banner_storage_provider'] ?? ($sessionUser['creator_banner_storage_provider'] ?? null),
+                'resolved_creator_avatar_url' => $freshUser['resolved_creator_avatar_url'] ?? ($sessionUser['resolved_creator_avatar_url'] ?? null),
+                'resolved_creator_banner_url' => $freshUser['resolved_creator_banner_url'] ?? ($sessionUser['resolved_creator_banner_url'] ?? null),
             ];
             $sessionUser = $_SESSION['auth_user'];
         }
@@ -794,12 +949,29 @@ function is_admin(): bool
     return (string) (current_user()['role'] ?? '') === 'admin';
 }
 
+function is_creator(): bool
+{
+    $role = (string) (current_user()['role'] ?? '');
+
+    return in_array($role, ['creator', 'admin'], true);
+}
+
 function ensure_admin(): void
 {
     ensure_logged_in();
 
     if (!is_admin()) {
         flash('error', 'You do not have access to this area.');
+        redirect('account.php');
+    }
+}
+
+function ensure_creator(): void
+{
+    ensure_logged_in();
+
+    if (!is_creator()) {
+        flash('error', 'You do not have access to creator tools.');
         redirect('account.php');
     }
 }
@@ -897,6 +1069,14 @@ function video_requires_premium(array $video): bool
 function can_watch_video(array $video, ?array $user = null): bool
 {
     if (!video_requires_premium($video)) {
+        return true;
+    }
+
+    if (
+        is_array($user)
+        && !empty($video['creator_user_id'])
+        && (int) ($video['creator_user_id'] ?? 0) === (int) ($user['id'] ?? 0)
+    ) {
         return true;
     }
 
@@ -1007,6 +1187,7 @@ function public_catalog_video_payload(array $video): array
         'slug' => (string) ($video['slug'] ?? ''),
         'title' => (string) ($video['title'] ?? ''),
         'synopsis' => (string) ($video['synopsis'] ?? ''),
+        'creator_user_id' => $video['creator_user_id'] ?? null,
         'creator_name' => (string) ($video['creator_name'] ?? ''),
         'category' => (string) ($video['category'] ?? ''),
         'access_level' => (string) ($video['access_level'] ?? 'free'),
@@ -1015,8 +1196,37 @@ function public_catalog_video_payload(array $video): array
         'duration_label' => (string) ($video['duration_label'] ?? '0min'),
         'resolved_poster_url' => (string) (($video['resolved_poster_url'] ?? $video['poster_url']) ?? ''),
         'resolved_listing_poster_url' => (string) (($video['resolved_listing_poster_url'] ?? $video['listing_poster_url'] ?? $video['poster_url']) ?? ''),
+        'poster_focus_x' => normalize_poster_focus($video['poster_focus_x'] ?? 50),
+        'poster_focus_y' => normalize_poster_focus($video['poster_focus_y'] ?? 50),
+        'poster_object_position' => poster_object_position($video),
         'published_at' => $video['published_at'] ?? null,
     ];
+}
+
+function normalize_poster_focus(mixed $value): int
+{
+    $focus = (int) $value;
+
+    if ($focus < 0) {
+        return 0;
+    }
+
+    if ($focus > 100) {
+        return 100;
+    }
+
+    return $focus;
+}
+
+/**
+ * @param array<string, mixed> $video
+ */
+function poster_object_position(array $video): string
+{
+    $focusX = normalize_poster_focus($video['poster_focus_x'] ?? 50);
+    $focusY = normalize_poster_focus($video['poster_focus_y'] ?? 50);
+
+    return $focusX . '% ' . $focusY . '%';
 }
 
 function slugify(string $value): string
@@ -1032,6 +1242,25 @@ function slugify(string $value): string
 function uploaded_file_present(array $file): bool
 {
     return isset($file['error']) && (int) $file['error'] === UPLOAD_ERR_OK && !empty($file['tmp_name']);
+}
+
+function viewer_session_key(?array $user = null): string
+{
+    $sessionId = session_id();
+
+    if ($sessionId === '') {
+        try {
+            $sessionId = bin2hex(random_bytes(16));
+        } catch (Throwable) {
+            $sessionId = uniqid('viewer-', true);
+        }
+        $_SESSION['viewer_session_key'] = $sessionId;
+    }
+
+    $userId = (string) ($user['id'] ?? '');
+    $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+    return hash('sha256', $sessionId . '|' . client_ip_address() . '|' . $userAgent . '|' . $userId);
 }
 
 /**

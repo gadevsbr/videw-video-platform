@@ -48,6 +48,11 @@ final class UserRepository
         return $this->findOneBy('stripe_subscription_id', $stripeSubscriptionId);
     }
 
+    public function findByCreatorSlug(string $slug): ?array
+    {
+        return $this->findOneBy('creator_slug', $slug);
+    }
+
     /**
      * @return array<int, array<string, mixed>>
      */
@@ -93,7 +98,11 @@ final class UserRepository
             $offset = ($page - 1) * $perPage;
 
             $statement = $pdo->prepare(
-                'SELECT id, display_name, email, role, status, account_tier, stripe_subscription_status, birth_date, adult_confirmed_at, last_login_at, mfa_enabled, created_at
+                'SELECT id, display_name, creator_display_name, creator_slug, creator_bio,
+                        creator_avatar_url, creator_avatar_path, creator_avatar_storage_provider,
+                        creator_banner_url, creator_banner_path, creator_banner_storage_provider,
+                        email, role, status, account_tier, stripe_subscription_status, birth_date,
+                        adult_confirmed_at, last_login_at, mfa_enabled, created_at
                  FROM users
                  ' . $where . '
                  ORDER BY created_at DESC, id DESC
@@ -403,6 +412,69 @@ final class UserRepository
         }
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function updateCreatorProfile(int $id, array $payload): void
+    {
+        $pdo = Database::connection();
+
+        if (!$pdo instanceof PDO) {
+            throw new RuntimeException('Creator profile updates are temporarily unavailable.');
+        }
+
+        try {
+            $statement = $pdo->prepare(
+                'UPDATE users
+                 SET creator_display_name = :creator_display_name,
+                     creator_slug = :creator_slug,
+                     creator_bio = :creator_bio,
+                     creator_avatar_url = :creator_avatar_url,
+                     creator_avatar_path = :creator_avatar_path,
+                     creator_avatar_storage_provider = :creator_avatar_storage_provider,
+                     creator_banner_url = :creator_banner_url,
+                     creator_banner_path = :creator_banner_path,
+                     creator_banner_storage_provider = :creator_banner_storage_provider,
+                     updated_at = NOW()
+                 WHERE id = :id
+                 LIMIT 1'
+            );
+            $statement->execute([
+                'id' => $id,
+                'creator_display_name' => $payload['creator_display_name'] ?? null,
+                'creator_slug' => $payload['creator_slug'] ?? null,
+                'creator_bio' => $payload['creator_bio'] ?? null,
+                'creator_avatar_url' => $payload['creator_avatar_url'] ?? null,
+                'creator_avatar_path' => $payload['creator_avatar_path'] ?? null,
+                'creator_avatar_storage_provider' => $payload['creator_avatar_storage_provider'] ?? null,
+                'creator_banner_url' => $payload['creator_banner_url'] ?? null,
+                'creator_banner_path' => $payload['creator_banner_path'] ?? null,
+                'creator_banner_storage_provider' => $payload['creator_banner_storage_provider'] ?? null,
+            ]);
+        } catch (Throwable $exception) {
+            throw new RuntimeException('Could not update the creator profile. ' . $exception->getMessage());
+        }
+    }
+
+    public function generateUniqueCreatorSlug(string $value, ?int $ignoreId = null): string
+    {
+        $baseSlug = slugify($value);
+
+        if ($baseSlug === '') {
+            $baseSlug = 'creator';
+        }
+
+        $slug = $baseSlug;
+        $suffix = 2;
+
+        while ($this->creatorSlugExists($slug, $ignoreId)) {
+            $slug = $baseSlug . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
     private function findOneBy(string $column, string $value): ?array
     {
         $pdo = Database::connection();
@@ -411,17 +483,20 @@ final class UserRepository
             return null;
         }
 
-        if (!in_array($column, ['id', 'email', 'stripe_customer_id', 'stripe_subscription_id'], true)) {
+        if (!in_array($column, ['id', 'email', 'stripe_customer_id', 'stripe_subscription_id', 'creator_slug'], true)) {
             return null;
         }
 
         try {
             $statement = $pdo->prepare(
                 'SELECT
-                    id, display_name, email, password_hash, role, status, birth_date, adult_confirmed_at,
+                    id, display_name, creator_display_name, creator_slug, creator_bio,
+                    creator_avatar_url, creator_avatar_path, creator_avatar_storage_provider,
+                    creator_banner_url, creator_banner_path, creator_banner_storage_provider,
+                    email, password_hash, role, status, birth_date, adult_confirmed_at,
                     account_tier, stripe_customer_id, stripe_subscription_id, stripe_subscription_price_id,
-                    stripe_subscription_status, stripe_current_period_end, last_login_at, mfa_secret, mfa_enabled,
-                    mfa_backup_codes_json, created_at
+                    stripe_subscription_status, stripe_current_period_end, last_login_at, mfa_secret,
+                    mfa_enabled, mfa_backup_codes_json, created_at
                  FROM users
                  WHERE ' . $column . ' = :value
                  LIMIT 1'
@@ -432,6 +507,32 @@ final class UserRepository
             return $user ? $this->normalizeUser($user) : null;
         } catch (Throwable) {
             return null;
+        }
+    }
+
+    private function creatorSlugExists(string $slug, ?int $ignoreId = null): bool
+    {
+        $pdo = Database::connection();
+
+        if (!$pdo instanceof PDO) {
+            return false;
+        }
+
+        try {
+            $sql = 'SELECT COUNT(*) FROM users WHERE creator_slug = :slug';
+            $params = ['slug' => $slug];
+
+            if ($ignoreId !== null) {
+                $sql .= ' AND id <> :ignore_id';
+                $params['ignore_id'] = $ignoreId;
+            }
+
+            $statement = $pdo->prepare($sql);
+            $statement->execute($params);
+
+            return (int) $statement->fetchColumn() > 0;
+        } catch (Throwable) {
+            return false;
         }
     }
 
@@ -455,11 +556,41 @@ final class UserRepository
         $user['mfa_secret'] = isset($user['mfa_secret']) && $user['mfa_secret'] !== '' ? (string) $user['mfa_secret'] : null;
         $user['mfa_backup_codes'] = $backupCodes;
         $user['account_tier'] = (string) ($user['account_tier'] ?? 'free');
+        $user['creator_display_name'] = trim((string) ($user['creator_display_name'] ?? '')) !== ''
+            ? trim((string) $user['creator_display_name'])
+            : (string) ($user['display_name'] ?? 'Creator');
+        $user['creator_slug'] = trim((string) ($user['creator_slug'] ?? '')) !== ''
+            ? trim((string) $user['creator_slug'])
+            : null;
+        $user['creator_bio'] = trim((string) ($user['creator_bio'] ?? ''));
+        $user['creator_avatar_url'] = isset($user['creator_avatar_url']) && $user['creator_avatar_url'] !== '' ? (string) $user['creator_avatar_url'] : null;
+        $user['creator_avatar_path'] = isset($user['creator_avatar_path']) && $user['creator_avatar_path'] !== '' ? (string) $user['creator_avatar_path'] : null;
+        $user['creator_avatar_storage_provider'] = isset($user['creator_avatar_storage_provider']) && $user['creator_avatar_storage_provider'] !== ''
+            ? (string) $user['creator_avatar_storage_provider']
+            : null;
+        $user['creator_banner_url'] = isset($user['creator_banner_url']) && $user['creator_banner_url'] !== '' ? (string) $user['creator_banner_url'] : null;
+        $user['creator_banner_path'] = isset($user['creator_banner_path']) && $user['creator_banner_path'] !== '' ? (string) $user['creator_banner_path'] : null;
+        $user['creator_banner_storage_provider'] = isset($user['creator_banner_storage_provider']) && $user['creator_banner_storage_provider'] !== ''
+            ? (string) $user['creator_banner_storage_provider']
+            : null;
         $user['stripe_customer_id'] = isset($user['stripe_customer_id']) && $user['stripe_customer_id'] !== '' ? (string) $user['stripe_customer_id'] : null;
         $user['stripe_subscription_id'] = isset($user['stripe_subscription_id']) && $user['stripe_subscription_id'] !== '' ? (string) $user['stripe_subscription_id'] : null;
         $user['stripe_subscription_price_id'] = isset($user['stripe_subscription_price_id']) && $user['stripe_subscription_price_id'] !== '' ? (string) $user['stripe_subscription_price_id'] : null;
         $user['stripe_subscription_status'] = isset($user['stripe_subscription_status']) && $user['stripe_subscription_status'] !== '' ? (string) $user['stripe_subscription_status'] : null;
         $user['stripe_current_period_end'] = isset($user['stripe_current_period_end']) && $user['stripe_current_period_end'] !== '' ? (string) $user['stripe_current_period_end'] : null;
+        $user['resolved_creator_avatar_url'] = resolve_creator_media_asset(
+            $user['creator_avatar_url'],
+            $user['creator_avatar_path'],
+            $user['creator_avatar_storage_provider'],
+            creator_avatar_fallback($user['creator_display_name'])
+        );
+        $user['resolved_creator_banner_url'] = resolve_creator_media_asset(
+            $user['creator_banner_url'],
+            $user['creator_banner_path'],
+            $user['creator_banner_storage_provider'],
+            creator_banner_fallback($user['creator_display_name'])
+        );
+        $user['creator_profile_url'] = $user['creator_slug'] ? base_url('channel.php?creator=' . urlencode((string) $user['creator_slug'])) : null;
 
         return $user;
     }

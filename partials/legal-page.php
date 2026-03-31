@@ -19,7 +19,7 @@ $user = current_user();
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= e(page_lock_class()); ?>">
+<body class="<?= e(page_lock_class('public-layout')); ?>">
     <?php
     $publicNavActive = 'support';
     $publicBarItems = copy_items('header.bar.legal');

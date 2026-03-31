@@ -17,7 +17,7 @@ $supportEmail = (string) config('app.support_email');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= e(page_lock_class()); ?>">
+<body class="<?= e(page_lock_class('public-layout')); ?>">
     <?php
     $publicNavActive = 'support';
     $publicBarItems = copy_items('header.bar.support');
@@ -25,7 +25,7 @@ $supportEmail = (string) config('app.support_email');
     ?>
 
     <main class="page-shell">
-        <section class="page-intro">
+        <section class="page-intro page-intro--single">
             <div class="page-intro__copy">
                 <span class="eyebrow"><?= e(copy_text('support.hero_eyebrow', 'SUPPORT')); ?></span>
                 <h1><?= e(copy_text('support.hero_title', 'Help users find the right next step.')); ?></h1>
@@ -37,20 +37,6 @@ $supportEmail = (string) config('app.support_email');
                     <a class="button button--ghost" href="<?= e(base_url('rules.php')); ?>"><?= e(copy_text('support.hero_secondary_cta', 'Read platform rules')); ?></a>
                 </div>
             </div>
-            <aside class="page-intro__aside">
-                <article class="notice-card">
-                    <strong><?= e(copy_text('support.email_title', 'Support email')); ?></strong>
-                    <?php if ($supportEmail !== ''): ?>
-                        <a class="text-link" href="mailto:<?= e($supportEmail); ?>"><?= e($supportEmail); ?></a>
-                    <?php else: ?>
-                        <p><?= e(copy_text('support.email_empty', 'Add a support email from the admin panel to show contact details here.')); ?></p>
-                    <?php endif; ?>
-                </article>
-                <article class="notice-card">
-                    <strong><?= e(copy_text('support.best_for_title', 'Best for')); ?></strong>
-                    <p><?= e(copy_text('support.best_for_text', 'Account access, Premium payments, policy questions, and takedown or compliance contact.')); ?></p>
-                </article>
-            </aside>
         </section>
 
         <section class="catalog-section">

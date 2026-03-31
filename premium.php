@@ -48,7 +48,7 @@ $flashSuccess = flash('success');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= e(page_lock_class()); ?>">
+<body class="<?= e(page_lock_class('public-layout')); ?>">
     <?php
     $publicNavActive = 'premium';
     $publicBarItems = copy_items('header.bar.premium');

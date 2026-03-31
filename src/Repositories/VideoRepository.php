@@ -12,6 +12,12 @@ use Throwable;
 
 final class VideoRepository
 {
+    private const SELECT_COLUMNS = 'videos.id, videos.slug, videos.title, videos.synopsis, videos.creator_user_id, videos.creator_name,
+        videos.category, videos.access_level, videos.duration_minutes, videos.poster_tone, videos.poster_url, videos.poster_path,
+        videos.poster_storage_provider, videos.poster_focus_x, videos.poster_focus_y, videos.video_url, videos.file_path, videos.trailer_url, videos.embed_url, videos.mime_type,
+        videos.original_source_url, videos.source_type, videos.storage_provider, videos.is_featured, videos.moderation_status,
+        videos.moderation_notes, videos.published_at, videos.deleted_at, videos.created_at, videos.updated_at';
+
     private bool $usingFallback = false;
 
     /**
@@ -33,17 +39,14 @@ final class VideoRepository
         if ($pdo instanceof PDO) {
             try {
                 $statement = $pdo->query(
-                    "SELECT id, slug, title, synopsis, creator_name, category, access_level, duration_minutes, poster_tone,
-                            poster_url, poster_path, poster_storage_provider, video_url, file_path, trailer_url, embed_url,
-                            mime_type, original_source_url, source_type, storage_provider, is_featured, moderation_status,
-                            moderation_notes, published_at, deleted_at
+                    'SELECT ' . self::SELECT_COLUMNS . '
                      FROM videos
-                     WHERE moderation_status = 'approved' AND deleted_at IS NULL
-                     ORDER BY published_at DESC, id DESC"
+                     WHERE moderation_status = \'approved\' AND deleted_at IS NULL
+                     ORDER BY published_at DESC, id DESC'
                 );
 
                 $rows = $statement->fetchAll();
-                $this->cachedVideos = array_map([$this, 'normalizeVideo'], $rows);
+                $this->cachedVideos = array_map([$this, 'normalizeVideo'], $rows ?: []);
 
                 return $this->cachedVideos;
             } catch (Throwable) {
@@ -60,7 +63,7 @@ final class VideoRepository
     }
 
     /**
-     * @param array<string, string> $filters
+     * @param array<string, string|int> $filters
      * @return array<int, array<string, mixed>>
      */
     public function listForAdmin(array $filters = []): array
@@ -69,7 +72,7 @@ final class VideoRepository
     }
 
     /**
-     * @param array<string, string> $filters
+     * @param array<string, string|int> $filters
      * @return array{items:array<int, array<string, mixed>>,total:int,page:int,per_page:int,total_pages:int}
      */
     public function paginateForAdmin(array $filters = [], int $page = 1, int $perPage = 12): array
@@ -77,9 +80,11 @@ final class VideoRepository
         $pdo = Database::connection();
 
         if (!$pdo instanceof PDO) {
+            $items = $this->listPublished();
+
             return [
-                'items' => $this->listPublished(),
-                'total' => count($this->listPublished()),
+                'items' => $items,
+                'total' => count($items),
                 'page' => 1,
                 'per_page' => $perPage,
                 'total_pages' => 1,
@@ -100,10 +105,7 @@ final class VideoRepository
             $offset = ($page - 1) * $perPage;
 
             $statement = $pdo->prepare(
-                'SELECT id, slug, title, synopsis, creator_name, category, access_level, duration_minutes, poster_tone,
-                        poster_url, poster_path, poster_storage_provider, video_url, file_path, trailer_url, embed_url,
-                        mime_type, original_source_url, source_type, storage_provider, is_featured, moderation_status,
-                        moderation_notes, published_at, deleted_at
+                'SELECT ' . self::SELECT_COLUMNS . '
                  FROM videos
                  WHERE ' . $where . '
                  ORDER BY created_at DESC, id DESC
@@ -111,9 +113,95 @@ final class VideoRepository
             );
 
             foreach ($params as $key => $value) {
-                $statement->bindValue(':' . $key, $value);
+                if (is_int($value)) {
+                    $statement->bindValue(':' . $key, $value, PDO::PARAM_INT);
+                } else {
+                    $statement->bindValue(':' . $key, $value);
+                }
             }
 
+            $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $statement->bindValue(':limit', $perPage, PDO::PARAM_INT);
+            $statement->execute();
+
+            return [
+                'items' => array_map([$this, 'normalizeVideo'], $statement->fetchAll() ?: []),
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => $totalPages,
+            ];
+        } catch (Throwable) {
+            return [
+                'items' => [],
+                'total' => 0,
+                'page' => 1,
+                'per_page' => $perPage,
+                'total_pages' => 1,
+            ];
+        }
+    }
+
+    /**
+     * @return array{items:array<int, array<string, mixed>>,total:int,page:int,per_page:int,total_pages:int}
+     */
+    public function paginateForCreator(int $creatorUserId, array $filters = [], int $page = 1, int $perPage = 12): array
+    {
+        $filters['creator_user_id'] = $creatorUserId;
+
+        return $this->paginateForAdmin($filters, $page, $perPage);
+    }
+
+    /**
+     * @return array{items:array<int, array<string, mixed>>,total:int,page:int,per_page:int,total_pages:int}
+     */
+    public function paginatePublishedByCreator(int $creatorUserId, int $page = 1, int $perPage = 12): array
+    {
+        $pdo = Database::connection();
+
+        if (!$pdo instanceof PDO) {
+            $items = array_values(array_filter(
+                $this->listPublished(),
+                static fn (array $video): bool => (int) ($video['creator_user_id'] ?? 0) === $creatorUserId
+            ));
+
+            return [
+                'items' => array_slice($items, 0, $perPage),
+                'total' => count($items),
+                'page' => 1,
+                'per_page' => $perPage,
+                'total_pages' => 1,
+            ];
+        }
+
+        $page = max(1, $page);
+        $perPage = max(1, min(100, $perPage));
+
+        try {
+            $countStatement = $pdo->prepare(
+                'SELECT COUNT(*)
+                 FROM videos
+                 WHERE creator_user_id = :creator_user_id
+                   AND moderation_status = \'approved\'
+                   AND deleted_at IS NULL'
+            );
+            $countStatement->execute(['creator_user_id' => $creatorUserId]);
+            $total = (int) $countStatement->fetchColumn();
+
+            $totalPages = max(1, (int) ceil($total / $perPage));
+            $page = min($page, $totalPages);
+            $offset = ($page - 1) * $perPage;
+
+            $statement = $pdo->prepare(
+                'SELECT ' . self::SELECT_COLUMNS . '
+                 FROM videos
+                 WHERE creator_user_id = :creator_user_id
+                   AND moderation_status = \'approved\'
+                   AND deleted_at IS NULL
+                 ORDER BY published_at DESC, id DESC
+                 LIMIT :offset, :limit'
+            );
+            $statement->bindValue(':creator_user_id', $creatorUserId, PDO::PARAM_INT);
             $statement->bindValue(':offset', $offset, PDO::PARAM_INT);
             $statement->bindValue(':limit', $perPage, PDO::PARAM_INT);
             $statement->execute();
@@ -154,13 +242,21 @@ final class VideoRepository
     public function stats(): array
     {
         $videos = $this->listPublished();
-        $creators = array_unique(array_column($videos, 'creator_name'));
+        $creatorKeys = [];
+
+        foreach ($videos as $video) {
+            $creatorKey = (int) ($video['creator_user_id'] ?? 0) > 0
+                ? 'id:' . (int) $video['creator_user_id']
+                : 'name:' . (string) ($video['creator_name'] ?? '');
+            $creatorKeys[$creatorKey] = true;
+        }
+
         $premium = array_filter($videos, static fn (array $video): bool => $video['access_level'] !== 'free');
         $featured = array_filter($videos, static fn (array $video): bool => (int) $video['is_featured'] === 1);
 
         return [
             'videos' => count($videos),
-            'creators' => count($creators),
+            'creators' => count($creatorKeys),
             'premium' => count($premium),
             'featured' => count($featured),
         ];
@@ -183,6 +279,26 @@ final class VideoRepository
             'approved' => count($approved),
             'flagged' => count($flagged),
             'featured' => count($featured),
+        ];
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public function creatorStats(int $creatorUserId): array
+    {
+        $videos = $this->paginateForCreator($creatorUserId, [], 1, 500)['items'];
+        $published = array_filter($videos, static fn (array $video): bool => (string) ($video['moderation_status'] ?? '') === 'approved');
+        $draft = array_filter($videos, static fn (array $video): bool => (string) ($video['moderation_status'] ?? '') === 'draft');
+        $flagged = array_filter($videos, static fn (array $video): bool => (string) ($video['moderation_status'] ?? '') === 'flagged');
+        $premium = array_filter($videos, static fn (array $video): bool => video_requires_premium($video));
+
+        return [
+            'total' => count($videos),
+            'published' => count($published),
+            'draft' => count($draft),
+            'flagged' => count($flagged),
+            'premium' => count($premium),
         ];
     }
 
@@ -213,10 +329,7 @@ final class VideoRepository
 
         try {
             $statement = $pdo->prepare(
-                'SELECT id, slug, title, synopsis, creator_name, category, access_level, duration_minutes, poster_tone,
-                        poster_url, poster_path, poster_storage_provider, video_url, file_path, trailer_url, embed_url,
-                        mime_type, original_source_url, source_type, storage_provider, is_featured, moderation_status,
-                        moderation_notes, published_at, deleted_at
+                'SELECT ' . self::SELECT_COLUMNS . '
                  FROM videos
                  WHERE id = :id
                  LIMIT 1'
@@ -228,6 +341,21 @@ final class VideoRepository
         } catch (Throwable) {
             return null;
         }
+    }
+
+    public function findOwnedById(int $id, int $creatorUserId): ?array
+    {
+        $video = $this->findById($id);
+
+        if (!$video) {
+            return null;
+        }
+
+        if ((int) ($video['creator_user_id'] ?? 0) !== $creatorUserId) {
+            return null;
+        }
+
+        return $video;
     }
 
     /**
@@ -247,10 +375,7 @@ final class VideoRepository
 
         try {
             $statement = $pdo->prepare(
-                'SELECT id, slug, title, synopsis, creator_name, category, access_level, duration_minutes, poster_tone,
-                        poster_url, poster_path, poster_storage_provider, video_url, file_path, trailer_url, embed_url,
-                        mime_type, original_source_url, source_type, storage_provider, is_featured, moderation_status,
-                        moderation_notes, published_at, deleted_at
+                'SELECT ' . self::SELECT_COLUMNS . '
                  FROM videos
                  WHERE id IN (' . $placeholders . ')'
             );
@@ -294,13 +419,13 @@ final class VideoRepository
         try {
             $statement = $pdo->prepare(
                 'INSERT INTO videos (
-                    slug, title, synopsis, creator_name, category, access_level, duration_minutes, poster_tone,
-                    poster_url, poster_path, poster_storage_provider, video_url, file_path, trailer_url, embed_url,
+                    slug, title, synopsis, creator_user_id, creator_name, category, access_level, duration_minutes, poster_tone,
+                    poster_url, poster_path, poster_storage_provider, poster_focus_x, poster_focus_y, video_url, file_path, trailer_url, embed_url,
                     mime_type, original_source_url, source_type, storage_provider, is_featured, moderation_status,
                     moderation_notes, published_at, deleted_at, created_at, updated_at
                 ) VALUES (
-                    :slug, :title, :synopsis, :creator_name, :category, :access_level, :duration_minutes, :poster_tone,
-                    :poster_url, :poster_path, :poster_storage_provider, :video_url, :file_path, :trailer_url, :embed_url,
+                    :slug, :title, :synopsis, :creator_user_id, :creator_name, :category, :access_level, :duration_minutes, :poster_tone,
+                    :poster_url, :poster_path, :poster_storage_provider, :poster_focus_x, :poster_focus_y, :video_url, :file_path, :trailer_url, :embed_url,
                     :mime_type, :original_source_url, :source_type, :storage_provider, :is_featured, :moderation_status,
                     :moderation_notes, :published_at, NULL, NOW(), NOW()
                 )'
@@ -309,6 +434,7 @@ final class VideoRepository
                 'slug' => $payload['slug'],
                 'title' => $payload['title'],
                 'synopsis' => $payload['synopsis'],
+                'creator_user_id' => $payload['creator_user_id'] ?? null,
                 'creator_name' => $payload['creator_name'],
                 'category' => $payload['category'],
                 'access_level' => $payload['access_level'],
@@ -317,6 +443,8 @@ final class VideoRepository
                 'poster_url' => $payload['poster_url'],
                 'poster_path' => $payload['poster_path'],
                 'poster_storage_provider' => $payload['poster_storage_provider'],
+                'poster_focus_x' => $payload['poster_focus_x'],
+                'poster_focus_y' => $payload['poster_focus_y'],
                 'video_url' => $payload['video_url'],
                 'file_path' => $payload['file_path'],
                 'trailer_url' => $payload['trailer_url'],
@@ -356,6 +484,7 @@ final class VideoRepository
                  SET slug = :slug,
                      title = :title,
                      synopsis = :synopsis,
+                     creator_user_id = :creator_user_id,
                      creator_name = :creator_name,
                      category = :category,
                      access_level = :access_level,
@@ -364,6 +493,8 @@ final class VideoRepository
                      poster_url = :poster_url,
                      poster_path = :poster_path,
                      poster_storage_provider = :poster_storage_provider,
+                     poster_focus_x = :poster_focus_x,
+                     poster_focus_y = :poster_focus_y,
                      video_url = :video_url,
                      file_path = :file_path,
                      trailer_url = :trailer_url,
@@ -385,6 +516,7 @@ final class VideoRepository
                 'slug' => $payload['slug'],
                 'title' => $payload['title'],
                 'synopsis' => $payload['synopsis'],
+                'creator_user_id' => $payload['creator_user_id'] ?? null,
                 'creator_name' => $payload['creator_name'],
                 'category' => $payload['category'],
                 'access_level' => $payload['access_level'],
@@ -393,6 +525,8 @@ final class VideoRepository
                 'poster_url' => $payload['poster_url'],
                 'poster_path' => $payload['poster_path'],
                 'poster_storage_provider' => $payload['poster_storage_provider'],
+                'poster_focus_x' => $payload['poster_focus_x'],
+                'poster_focus_y' => $payload['poster_focus_y'],
                 'video_url' => $payload['video_url'],
                 'file_path' => $payload['file_path'],
                 'trailer_url' => $payload['trailer_url'],
@@ -529,6 +663,31 @@ final class VideoRepository
         $this->cachedVideos = null;
     }
 
+    public function syncCreatorIdentity(int $creatorUserId, string $creatorName): void
+    {
+        $pdo = Database::connection();
+
+        if (!$pdo instanceof PDO) {
+            return;
+        }
+
+        try {
+            $statement = $pdo->prepare(
+                'UPDATE videos
+                 SET creator_name = :creator_name, updated_at = NOW()
+                 WHERE creator_user_id = :creator_user_id'
+            );
+            $statement->execute([
+                'creator_name' => $creatorName,
+                'creator_user_id' => $creatorUserId,
+            ]);
+        } catch (Throwable) {
+            return;
+        }
+
+        $this->cachedVideos = null;
+    }
+
     public function generateUniqueSlug(string $title, ?int $ignoreId = null): string
     {
         $baseSlug = slugify($title);
@@ -576,8 +735,8 @@ final class VideoRepository
     }
 
     /**
-     * @param array<string, string> $filters
-     * @return array{0:string,1:array<string, string>}
+     * @param array<string, string|int> $filters
+     * @return array{0:string,1:array<string, string|int>}
      */
     private function buildAdminWhere(array $filters): array
     {
@@ -585,6 +744,7 @@ final class VideoRepository
         $status = trim((string) ($filters['status'] ?? ''));
         $sourceType = trim((string) ($filters['source_type'] ?? ''));
         $storageProvider = trim((string) ($filters['storage_provider'] ?? ''));
+        $creatorUserId = (int) ($filters['creator_user_id'] ?? 0);
 
         $conditions = ['deleted_at IS NULL'];
         $params = [];
@@ -609,6 +769,11 @@ final class VideoRepository
             $params['storage_provider'] = $storageProvider;
         }
 
+        if ($creatorUserId > 0) {
+            $conditions[] = 'creator_user_id = :creator_user_id';
+            $params['creator_user_id'] = $creatorUserId;
+        }
+
         return [implode(' AND ', $conditions), $params];
     }
 
@@ -628,6 +793,7 @@ final class VideoRepository
             'slug' => (string) ($video['slug'] ?? ''),
             'title' => (string) ($video['title'] ?? ''),
             'synopsis' => (string) ($video['synopsis'] ?? ''),
+            'creator_user_id' => !empty($video['creator_user_id']) ? (int) $video['creator_user_id'] : null,
             'creator_name' => (string) ($video['creator_name'] ?? ''),
             'category' => (string) ($video['category'] ?? ''),
             'access_level' => normalize_access_level((string) ($video['access_level'] ?? 'free')),
@@ -639,6 +805,9 @@ final class VideoRepository
             'poster_url' => $detailPosterUrl,
             'listing_poster_url' => $listingPosterUrl,
             'poster_path' => !empty($video['poster_path']) ? (string) $video['poster_path'] : null,
+            'poster_focus_x' => normalize_poster_focus($video['poster_focus_x'] ?? 50),
+            'poster_focus_y' => normalize_poster_focus($video['poster_focus_y'] ?? 50),
+            'poster_object_position' => poster_object_position($video),
             'poster_storage_provider' => !empty($video['poster_storage_provider'])
                 ? (string) $video['poster_storage_provider']
                 : (!empty($video['poster_path']) ? (string) ($video['storage_provider'] ?? 'local') : null),
@@ -657,6 +826,8 @@ final class VideoRepository
             'published_at' => !empty($video['published_at']) ? (string) $video['published_at'] : null,
             'published_label' => format_datetime(!empty($video['published_at']) ? (string) $video['published_at'] : null),
             'deleted_at' => !empty($video['deleted_at']) ? (string) $video['deleted_at'] : null,
+            'created_at' => !empty($video['created_at']) ? (string) $video['created_at'] : null,
+            'updated_at' => !empty($video['updated_at']) ? (string) $video['updated_at'] : null,
         ];
     }
 }

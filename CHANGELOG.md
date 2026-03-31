@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-03-31
+
+### Added
+- Added a full creator suite with application flow, moderation-ready approval path, creator studio, creator analytics, public channel pages, and creator profile controls for avatar, banner, bio, and slug.
+- Added creator-focused backend support with dedicated repositories and services for creator applications, channel analytics, and creator publishing workflows.
+- Added poster framing controls in the creator studio so publishers can choose which part of the poster stays visible in featured banners and video cards.
+- Added support for poster focus persistence in the video data model, along with the `db/upgrade-20260330-poster-framing.sql` migration for existing installs.
+- Added a section selector to the admin `Copy` screen so copy can be managed one section at a time instead of through one long page.
+- Added a `.user.ini` baseline for higher upload limits on lightweight shared-hosting environments.
+
+### Changed
+- Reworked the public front-end around the new shell and navigation model, including homepage, browse, support, Premium, account, legal, and watch/player pages.
+- Rebuilt the video player page to better match the new public product identity, with clearer playback hierarchy, cleaner metadata placement, and stronger creator/channel linking.
+- Refined the admin workspace to better match the new front-end identity, including updated navigation, denser operational layouts, better styling for form controls, and cleaner section organization.
+- Updated the account area to surface creator status, creator application state, and direct links into the creator studio and public channel experience.
+- Updated the schema and repositories to support creator-owned videos, creator profile fields, and poster focus coordinates.
+- Expanded the public copy system so new navigation labels and creator-related labels can still be managed centrally.
+
+### Improved
+- Improved homepage media sizing so featured posters, latest-upload cards, and supporting thumbnails keep more predictable proportions.
+- Improved creator publishing UX with poster recommendations for both uploads and external URLs, plus live preview framing for featured and card crops.
+- Improved responsive behavior across the public shell and admin shell, including header height handling, sidebar scrolling, category strips, support page layout, and browse/home stat blocks.
+- Improved admin usability for the `Copy` screen by reducing cognitive load and making large text sets easier to manage.
+- Improved file input, select, textarea, and moderation form styling so admin and studio screens are more visually consistent.
+
+### Fixed
+- Fixed public header overlap issues on certain resolutions by syncing the shell layout to the real header height.
+- Fixed cropped vertical video playback by changing the player media treatment so portrait videos are contained instead of being cut off.
+- Fixed oversized homepage and browse side-stat cards that were stretching vertically due to grid layout behavior.
+- Fixed malformed homepage feed markup that could distort the latest-upload cards and make thumbnails appear too large.
+- Fixed the support hero layout by simplifying the top area and removing low-value side cards that caused layout breakage.
+- Fixed the admin `Copy` workflow so section navigation now lands on the intended content instead of forcing operators through the full page.
+- Fixed upload error feedback so oversize uploads no longer fall through as a misleading expired-security-token message.
+
+### Removed
+- Removed the legacy `db/seed-demo.sql` file from the current release set.
+
 ## [0.2.4] - 2026-03-30
 
 ### Added

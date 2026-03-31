@@ -14,12 +14,36 @@ $publicVideos = array_map(static fn (array $video): array => public_catalog_vide
 $stats = $repository->stats();
 $featured = array_values(array_filter($videos, static fn (array $video): bool => (int) ($video['is_featured'] ?? 0) === 1));
 $featured = $featured ?: array_slice($videos, 0, 3);
+$categories = $repository->categories();
+$currentSearch = trim((string) ($_GET['q'] ?? ''));
+$currentCategory = trim((string) ($_GET['category'] ?? 'all'));
+$currentAccess = trim((string) ($_GET['access'] ?? 'all'));
+$currentSort = trim((string) ($_GET['sort'] ?? 'recent'));
+
+if ($currentCategory !== 'all' && !in_array($currentCategory, $categories, true)) {
+    $currentCategory = 'all';
+}
+
+if (!in_array($currentAccess, ['all', 'free', 'premium'], true)) {
+    $currentAccess = 'all';
+}
+
+if (!in_array($currentSort, ['recent', 'duration', 'title'], true)) {
+    $currentSort = 'recent';
+}
+
 $user = current_user();
 $bootPayload = default_bootstrap_payload('browse', [
     'usingFallback' => $repository->usingFallback(),
     'videos' => $publicVideos,
     'stats' => $stats,
-    'categories' => $repository->categories(),
+    'categories' => $categories,
+    'initialFilters' => [
+        'query' => $currentSearch,
+        'category' => $currentCategory,
+        'access' => $currentAccess,
+        'sort' => $currentSort,
+    ],
 ]);
 ?>
 <!DOCTYPE html>
@@ -32,14 +56,22 @@ $bootPayload = default_bootstrap_payload('browse', [
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= e(page_lock_class()); ?>">
+<body class="<?= e(page_lock_class('public-layout')); ?>">
     <?php
     $publicNavActive = 'browse';
     $publicBarItems = copy_items('header.bar.browse');
+    $publicSearchValue = $currentSearch;
     require ROOT_PATH . '/partials/public-header.php';
     ?>
 
     <main class="page-shell">
+        <section class="shell-strip">
+            <a class="<?= $currentCategory === 'all' ? 'chip chip--active' : 'chip'; ?>" href="<?= e(base_url('browse.php')); ?>">All</a>
+            <?php foreach (array_slice($categories, 0, 8) as $category): ?>
+                <a class="<?= $currentCategory === $category ? 'chip chip--active' : 'chip'; ?>" href="<?= e(base_url('browse.php?category=' . urlencode($category))); ?>"><?= e($category); ?></a>
+            <?php endforeach; ?>
+        </section>
+
         <section class="page-intro">
             <div class="page-intro__copy">
                 <span class="eyebrow"><?= e(copy_text('browse.hero_eyebrow', 'BROWSE')); ?></span>
@@ -67,19 +99,19 @@ $bootPayload = default_bootstrap_payload('browse', [
         </section>
 
         <?php if ($featured !== []): ?>
-            <section class="catalog-section">
-                <div class="section-heading">
+            <section class="shell-section">
+                <div class="shell-section__header">
                     <div>
                         <span class="eyebrow"><?= e(copy_text('browse.featured_eyebrow', 'FEATURED NOW')); ?></span>
                         <h2><?= e(copy_text('browse.featured_title', 'Quick starts')); ?></h2>
+                        <p><?= e(copy_text('browse.featured_description', 'Start with one of the current highlights, then keep filtering below.')); ?></p>
                     </div>
-                    <p><?= e(copy_text('browse.featured_description', 'Start with one of the current highlights, then keep filtering below.')); ?></p>
                 </div>
                 <div class="featured-grid">
                     <?php foreach (array_slice($featured, 0, 3) as $video): ?>
                         <article class="feature-card">
                             <a class="feature-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
-                                <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
+                                <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
                                 <div class="feature-card__overlay">
                                     <div class="meta-row">
                                         <span class="pill"><?= e($video['category']); ?></span>
@@ -102,20 +134,20 @@ $bootPayload = default_bootstrap_payload('browse', [
             </section>
         <?php endif; ?>
 
-        <section class="catalog-section">
-            <div class="section-heading">
+        <section class="shell-section">
+            <div class="shell-section__header">
                 <div>
                     <span class="eyebrow"><?= e(copy_text('browse.library_eyebrow', 'FULL LIBRARY')); ?></span>
                     <h2><?= e(copy_text('browse.library_title', 'Search, filter, and sort')); ?></h2>
+                    <p><?= e(copy_text('browse.library_description', 'Keep the homepage lighter and use this page when you want the full browsing workflow.')); ?></p>
                 </div>
-                <p><?= e(copy_text('browse.library_description', 'Keep the homepage lighter and use this page when you want the full browsing workflow.')); ?></p>
             </div>
             <div id="catalog-app">
                 <div class="grid-fallback">
                     <?php foreach (array_slice($videos, 0, 8) as $video): ?>
-                        <article class="video-card">
+                        <article class="video-card video-card--feed">
                             <a class="video-card__media" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $video['slug']))); ?>">
-                                <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>">
+                                <img src="<?= e((string) ($video['resolved_listing_poster_url'] ?? $video['resolved_poster_url'])); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
                                 <div class="video-card__overlay">
                                     <div class="meta-row">
                                         <span class="pill"><?= e($video['category']); ?></span>

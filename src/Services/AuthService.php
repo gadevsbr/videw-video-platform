@@ -555,6 +555,17 @@ final class AuthService
             'stripe_subscription_id' => $user['stripe_subscription_id'] ?? null,
             'stripe_subscription_status' => $user['stripe_subscription_status'] ?? null,
             'mfa_enabled' => (int) ($user['mfa_enabled'] ?? 0),
+            'creator_display_name' => $user['creator_display_name'] ?? null,
+            'creator_slug' => $user['creator_slug'] ?? null,
+            'creator_bio' => $user['creator_bio'] ?? null,
+            'creator_avatar_url' => $user['creator_avatar_url'] ?? null,
+            'creator_avatar_path' => $user['creator_avatar_path'] ?? null,
+            'creator_avatar_storage_provider' => $user['creator_avatar_storage_provider'] ?? null,
+            'creator_banner_url' => $user['creator_banner_url'] ?? null,
+            'creator_banner_path' => $user['creator_banner_path'] ?? null,
+            'creator_banner_storage_provider' => $user['creator_banner_storage_provider'] ?? null,
+            'resolved_creator_avatar_url' => $user['resolved_creator_avatar_url'] ?? null,
+            'resolved_creator_banner_url' => $user['resolved_creator_banner_url'] ?? null,
         ];
     }
 

@@ -39,7 +39,7 @@ if (is_post_request()) {
         clear_old_input();
         $_SESSION['age_verified_at'] = (new DateTimeImmutable())->format(DATE_ATOM);
         flash('success', $result['message']);
-        redirect('');
+        redirect('account.php');
     }
 
     flash('error', $result['message']);

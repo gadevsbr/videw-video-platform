@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/src/bootstrap.php';
 
 use App\Repositories\AuditLogRepository;
+use App\Repositories\CreatorApplicationRepository;
 use App\Repositories\SettingsRepository;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
@@ -15,6 +16,7 @@ ensure_logged_in();
 $auth = new AuthService();
 $billing = new BillingService();
 $userRepository = new UserRepository();
+$creatorApplications = new CreatorApplicationRepository();
 $auditLogs = new AuditLogRepository();
 $sessionUser = current_user();
 $userId = (int) ($sessionUser['id'] ?? 0);
@@ -76,6 +78,8 @@ $settings = new SettingsRepository();
 $storageSettings = $settings->all();
 $pendingMfaSetup = $auth->currentMfaSetup($userId);
 $billingConfigured = $billing->isConfigured();
+$creatorApplication = $creatorApplications->latestForUser($userId);
+$creatorApplicationStatus = (string) ($creatorApplication['status'] ?? '');
 $backupCodes = flash('mfa_backup_codes');
 $flashError = flash('error');
 $flashSuccess = flash('success');
@@ -89,7 +93,7 @@ $flashSuccess = flash('success');
     <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')); ?>">
     <?= public_head_markup(); ?>
 </head>
-<body class="<?= e(page_lock_class()); ?>">
+<body class="<?= e(page_lock_class('public-layout')); ?>">
     <?php
     $publicNavActive = '';
     $publicBarItems = copy_items('header.bar.account');
@@ -122,6 +126,10 @@ $flashSuccess = flash('success');
                 <article class="mini-stat">
                     <span><?= e(copy_text('account.summary_security', 'Security')); ?></span>
                     <strong><?= (int) ($user['mfa_enabled'] ?? 0) === 1 ? e(copy_text('account.summary_security_on', '2FA on')) : e(copy_text('account.summary_security_off', '2FA off')); ?></strong>
+                </article>
+                <article class="mini-stat">
+                    <span>Creator</span>
+                    <strong><?= is_creator() ? 'Studio active' : ($creatorApplicationStatus === 'pending' ? 'Pending review' : ($creatorApplicationStatus === 'rejected' ? 'Needs changes' : 'Not enabled')); ?></strong>
                 </article>
             </div>
             <div class="account-grid">
@@ -158,6 +166,30 @@ $flashSuccess = flash('success');
                     <p><strong><?= e(copy_text('account.profile_type', 'Account type:')); ?></strong> <?= e(ucfirst((string) $user['role'])); ?></p>
                     <p><strong><?= e(copy_text('account.profile_status', 'Account status:')); ?></strong> <?= e(user_status_label((string) ($user['status'] ?? 'active'))); ?></p>
                     <a class="text-link" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('account.profile_link', 'Go to browse')); ?></a>
+                </article>
+                <article class="compliance-card">
+                    <h3>Creator tools</h3>
+                    <?php if (is_creator()): ?>
+                        <p><strong>Channel:</strong> <?= e(creator_public_name($user)); ?></p>
+                        <p>Open the creator studio to publish videos, manage uploads, view analytics, and update your public channel.</p>
+                        <a class="text-link" href="<?= e(base_url('studio.php')); ?>">Open creator studio</a>
+                        <?php if (!empty($user['creator_slug'])): ?>
+                            <a class="text-link" href="<?= e(base_url('channel.php?creator=' . urlencode((string) $user['creator_slug']))); ?>">View public channel</a>
+                        <?php endif; ?>
+                    <?php elseif ($creatorApplicationStatus === 'pending'): ?>
+                        <p>Your creator request is waiting for review.</p>
+                        <p><strong>Requested channel:</strong> <?= e((string) ($creatorApplication['requested_display_name'] ?? creator_public_name($user))); ?></p>
+                        <a class="text-link" href="<?= e(base_url('become-creator.php')); ?>">Update request</a>
+                    <?php elseif ($creatorApplicationStatus === 'rejected'): ?>
+                        <p>Your last creator request needs changes before approval.</p>
+                        <?php if (!empty($creatorApplication['review_notes'])): ?>
+                            <p><strong>Review notes:</strong> <?= e((string) $creatorApplication['review_notes']); ?></p>
+                        <?php endif; ?>
+                        <a class="text-link" href="<?= e(base_url('become-creator.php')); ?>">Send a new request</a>
+                    <?php else: ?>
+                        <p>Apply for creator access to get your own studio, analytics, and public channel page.</p>
+                        <a class="text-link" href="<?= e(base_url('become-creator.php')); ?>">Become creator</a>
+                    <?php endif; ?>
                 </article>
                 <article class="compliance-card" id="security">
                     <h3><?= e(copy_text('account.security_title', 'Security')); ?></h3>
@@ -225,6 +257,11 @@ $flashSuccess = flash('success');
             <div class="hero__actions">
                 <a class="button" href="<?= e(base_url('browse.php')); ?>"><?= e(copy_text('account.primary_cta', 'Browse videos')); ?></a>
                 <a class="button button--ghost" href="<?= e(base_url('support.php')); ?>"><?= e(copy_text('account.secondary_cta', 'Get help')); ?></a>
+                <?php if (is_creator()): ?>
+                    <a class="button button--ghost" href="<?= e(base_url('studio.php')); ?>">Open creator studio</a>
+                <?php elseif ($creatorApplicationStatus !== 'pending'): ?>
+                    <a class="button button--ghost" href="<?= e(base_url('become-creator.php')); ?>">Become creator</a>
+                <?php endif; ?>
                 <?php if (is_admin()): ?>
                     <a class="button button--ghost" href="<?= e(base_url('admin.php')); ?>"><?= e(copy_text('account.admin_cta', 'Open admin')); ?></a>
                 <?php endif; ?>
