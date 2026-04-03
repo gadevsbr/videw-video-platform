@@ -2,6 +2,54 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-04-03
+
+### Added
+- Added a complete ad-slot system with admin management, public placements, placeholders, image/script/text ad formats, and Premium-aware visibility rules so signed-in Premium members do not see ads.
+- Added an `Ads` screen to the admin workspace for managing slot content, click URLs, script embeds, placeholders, and ad-specific media uploads.
+- Added watch-page pre-roll support for both uploaded/self-hosted videos and embedded videos, including dedicated pre-roll slots in the ad system.
+- Added VAST support for pre-roll ads, including backend tag resolution, wrapper handling, supported media-file selection, and basic tracking event support.
+- Added image-based pre-roll support so watch-page pre-roll slots can now show static image creatives before uploaded videos and embeds begin.
+- Added richer demo content for local and preview environments, including demo users, creators, creator requests, approved videos, moderation items, analytics records, and audit-log activity.
+- Added a dedicated `docs/DEPLOYMENT.md` guide and a public-facing `ROADMAP.md` to improve deployment clarity and project discoverability.
+- Added keyboard shortcuts to the custom video player: `Space` for play/pause, `M` for mute, `F` for fullscreen, and left/right arrows for 10-second seeking.
+
+### Changed
+- Reworked the public front-end again around the current product direction, replacing the remaining older visual treatment across the homepage, browse flow, support pages, account surfaces, and the watch experience.
+- Rebuilt the watch page around a custom first-party player UI for self-hosted videos, while keeping external embeds supported through the existing embed flow.
+- Expanded the ad data model to support pre-roll video assets, VAST tag URLs, skip timing, and separate slot behavior for self-hosted versus embedded playback.
+- Updated the player shell to better respect portrait and landscape media, including poster-informed sizing for embed shells and more accurate containment for uploaded videos.
+- Reorganized the creator studio so core workflows such as `Overview`, `Publish`, `Manage videos`, `Analytics`, and `Profile` are treated as the primary workspace instead of being squeezed into a secondary sidebar area.
+- Expanded admin-side monetization support with public head-script guidance, ad-slot previews, and clearer warnings about running third-party code on the public frontend.
+- Reworked the admin overview so the home screen now behaves more like an actual control panel, focusing on KPIs, platform health, billing readiness, pending work, and recent activity instead of repeating navigation shortcuts.
+- Rewrote key repository documentation to improve first impression, setup clarity, deployment guidance, source-available licensing accuracy, and GitHub conversion.
+
+### Improved
+- Improved homepage composition by reducing empty hero space, tightening side stats, removing low-value side content, and introducing a more useful hero detail area plus ad-slot support.
+- Improved browse, support, studio, and admin responsiveness with cleaner card sizing, less stretched side content, and better use of narrow viewport space.
+- Improved the creator publishing flow with clearer poster recommendations, poster framing controls, and more production-like seeded content for testing.
+- Improved the `Copy` workflow so operators can navigate copy sections more easily and manage a broader set of public-facing messages without editing code.
+- Improved public header spacing, navigation density, and shell behavior to better match the new front-end direction.
+- Improved the player experience for ad-supported viewers with auto-hiding controls, hidden cursor behavior, keyboard shortcuts, and cleaner portrait-mode control layout.
+- Improved the admin dashboard information hierarchy by replacing redundant shortcut groups with more useful pending-state cards and service-readiness summaries.
+- Improved the ads workspace so operators can pick one slot at a time and only edit the selected slot instead of scrolling through every placement on one long page.
+- Improved watch-page pre-roll presentation across image, video, and VAST ads with a progress bar, stronger CTA treatment, and cleaner skip/continue controls.
+- Improved public ad-slot consistency by standardizing front-end slot formats and placeholder sizing for home, browse, watch, premium, and support placements.
+
+### Fixed
+- Fixed multiple homepage layout issues, including oversized hero-side cards, oversized latest-upload thumbnails, and a sticky category strip that visually fought with the content below it.
+- Fixed support-page layout breakage by simplifying the intro structure and removing low-value side cards where they hurt readability.
+- Fixed admin visual bugs affecting sidebar stats, moderation forms, file inputs, and unstyled `select` controls.
+- Fixed duplicate bulk-selection checkboxes in the admin library cards so each video now exposes a single, clearer selection control.
+- Fixed the ads screen so changing the slot selector now reveals the correct slot editor, and changing the ad type now reveals only the matching ad fields.
+- Fixed image pre-roll rendering so the hidden media element no longer overlays the selected image creative on the watch page.
+- Fixed local media resolution so ad images and other locally stored assets no longer depend on stale absolute URLs saved at upload time.
+- Fixed public ad rendering for locally uploaded creatives by serving ad images and ad videos through a dedicated `ad-media.php` route instead of blocked direct `/storage/uploads/...` URLs.
+- Fixed pre-roll layout so ad creatives now render inside a dedicated inner frame, keeping the ad surface inside the useful player area instead of stretching across the full watch-stage width.
+- Fixed player cropping issues for vertical media and cleaned up the control layout in portrait mode so controls no longer overflow or waste large black areas.
+- Fixed player interaction behavior so controls now auto-hide during playback, reappear on movement inside the player, hide the cursor with the controls, and stay visible while paused.
+- Fixed public and creator-facing UI friction around poster presentation, hero emphasis, and media framing so demo and production content behave more predictably.
+
 ## [1.0.1] - 2026-03-31
 
 ### Added

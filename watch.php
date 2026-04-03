@@ -14,18 +14,23 @@ $repository = new VideoRepository();
 $users = new UserRepository();
 $videoAnalytics = new VideoAnalyticsRepository();
 $mediaAccess = new MediaAccessService();
+$user = current_user();
 $video = $repository->findBySlug($slug);
 $video = $video ? $mediaAccess->decorateVideo($video) : null;
 $videoRequiresPremium = $video ? video_requires_premium($video) : false;
-$canWatchVideo = $video ? can_watch_video($video, current_user()) : false;
+$canWatchVideo = $video ? can_watch_video($video, $user) : false;
 $creatorProfile = $video && !empty($video['creator_user_id']) ? $users->findById((int) $video['creator_user_id']) : null;
+$prerollAd = $video && $canWatchVideo ? current_preroll_ad_for_video($video) : null;
+$prerollPayload = is_array($prerollAd)
+    ? json_encode($prerollAd, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    : '';
 
 if ($video && $canWatchVideo && !empty($video['creator_user_id'])) {
     $videoAnalytics->recordView(
         (int) $video['id'],
         (int) $video['creator_user_id'],
-        current_user() ? (int) (current_user()['id'] ?? 0) : null,
-        viewer_session_key(current_user())
+        $user ? (int) ($user['id'] ?? 0) : null,
+        viewer_session_key($user)
     );
 }
 
@@ -34,7 +39,6 @@ if (!$video) {
 }
 
 $related = $video ? $mediaAccess->decorateVideos($repository->related((string) $video['slug'], (string) $video['category'])) : [];
-$user = current_user();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,7 +67,31 @@ $user = current_user();
         <?php else: ?>
             <section class="watch-page">
                 <div class="watch-page__main">
-                    <div class="watch-player-shell">
+                    <div class="watch-player-shell" data-watch-poster="<?= e((string) $video['resolved_poster_url']); ?>"<?= is_string($prerollPayload) && $prerollPayload !== '' ? ' data-watch-preroll="' . e($prerollPayload) . '"' : ''; ?>>
+                        <?php if (is_array($prerollAd)): ?>
+                            <div class="watch-preroll" data-watch-preroll-layer>
+                                <div class="watch-preroll__frame">
+                                    <div class="watch-preroll__media">
+                                        <video class="watch-preroll__video" data-watch-preroll-video playsinline preload="auto" muted></video>
+                                        <img class="watch-preroll__image" data-watch-preroll-image alt="<?= e((string) ($prerollAd['title'] ?? 'Sponsored')); ?>" hidden>
+                                    </div>
+                                    <div class="watch-preroll__surface">
+                                        <div class="watch-preroll__progress" aria-hidden="true">
+                                            <span class="watch-preroll__progress-bar" data-watch-preroll-progress></span>
+                                        </div>
+                                        <span class="ad-slot__eyebrow">Sponsored</span>
+                                        <strong><?= e((string) ($prerollAd['title'] ?? 'Sponsored message')); ?></strong>
+                                        <p><?= e((string) (($prerollAd['body_text'] ?? '') !== '' ? $prerollAd['body_text'] : 'This ad plays before the selected video for non-Premium viewers.')); ?></p>
+                                        <div class="watch-preroll__actions">
+                                            <?php if (trim((string) ($prerollAd['click_url'] ?? '')) !== ''): ?>
+                                                <a class="watch-preroll__cta" href="<?= e((string) ($prerollAd['click_url'] ?? '')); ?>" target="_blank" rel="noreferrer sponsored noopener" data-watch-preroll-cta>Learn more</a>
+                                            <?php endif; ?>
+                                            <button class="watch-preroll__skip" type="button" data-watch-preroll-skip disabled>Skip in <?= e((string) max(0, (int) ($prerollAd['skip_after_seconds'] ?? 5))); ?>s</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                         <?php if ($videoRequiresPremium && !$canWatchVideo): ?>
                             <div class="watch-placeholder">
                                 <img src="<?= e((string) $video['resolved_poster_url']); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
@@ -85,7 +113,8 @@ $user = current_user();
                             <div class="watch-embed-shell">
                                 <iframe
                                     class="watch-embed"
-                                    src="<?= e((string) $video['embed_url']); ?>"
+                                    src="<?= e(is_array($prerollAd) ? 'about:blank' : (string) $video['embed_url']); ?>"
+                                    data-watch-embed-src="<?= e((string) $video['embed_url']); ?>"
                                     title="<?= e($video['title']); ?>"
                                     loading="lazy"
                                     allow="autoplay; fullscreen; picture-in-picture"
@@ -94,9 +123,28 @@ $user = current_user();
                                 ></iframe>
                             </div>
                         <?php elseif ($video['video_url'] || $video['trailer_url']): ?>
-                            <video class="watch-player" controls preload="metadata" poster="<?= e((string) $video['resolved_poster_url']); ?>">
-                                <source src="<?= e((string) ($video['resolved_video_url'] ?: $video['trailer_url'])); ?>" type="<?= e((string) ($video['mime_type'] ?: 'video/mp4')); ?>">
-                            </video>
+                            <div class="watch-player-ui" data-watch-player>
+                                <video class="watch-player" data-watch-player-video preload="metadata" playsinline poster="<?= e((string) $video['resolved_poster_url']); ?>">
+                                    <source src="<?= e((string) ($video['resolved_video_url'] ?: $video['trailer_url'])); ?>" type="<?= e((string) ($video['mime_type'] ?: 'video/mp4')); ?>">
+                                </video>
+                                <div class="watch-player-controls" data-watch-player-controls>
+                                    <div class="watch-player-controls__main">
+                                        <button class="watch-control watch-control--primary" type="button" data-watch-toggle-play aria-label="Play or pause video">
+                                            <span data-watch-play-label>Play</span>
+                                        </button>
+                                        <div class="watch-progress">
+                                            <span class="watch-progress__time" data-watch-current-time>0:00</span>
+                                            <input class="watch-progress__range" type="range" min="0" max="100" step="0.1" value="0" data-watch-seek aria-label="Seek video">
+                                            <span class="watch-progress__time" data-watch-duration>0:00</span>
+                                        </div>
+                                    </div>
+                                    <div class="watch-player-controls__secondary">
+                                        <button class="watch-control" type="button" data-watch-toggle-mute aria-label="Mute or unmute video">Mute</button>
+                                        <input class="watch-volume" type="range" min="0" max="1" step="0.05" value="1" data-watch-volume aria-label="Video volume">
+                                        <button class="watch-control" type="button" data-watch-toggle-fullscreen aria-label="Toggle fullscreen">Fullscreen</button>
+                                    </div>
+                                </div>
+                            </div>
                         <?php else: ?>
                             <div class="watch-placeholder">
                                 <img src="<?= e((string) $video['resolved_poster_url']); ?>" alt="<?= e($video['title']); ?>" style="object-position: <?= e(poster_object_position($video)); ?>;">
@@ -166,6 +214,7 @@ $user = current_user();
                             <?php endif; ?>
                         </article>
                     <?php endif; ?>
+                    <?= render_public_ad_slot('watch_sidebar'); ?>
                     <?php if ($related): ?>
                         <section class="watch-next-list">
                             <h2><?= e(copy_text('watch.related_title', 'Up next')); ?></h2>

@@ -19,6 +19,26 @@ $heroQueue = array_values(array_filter(
     static fn (array $video): bool => $heroVideo === null || (string) $video['slug'] !== (string) $heroVideo['slug']
 ));
 $heroQueue = array_slice($heroQueue, 0, 4);
+$heroCreatorVideoCount = 0;
+$heroCategoryVideoCount = 0;
+$heroNextVideo = $heroQueue[0] ?? null;
+
+if ($heroVideo) {
+    foreach ($videos as $video) {
+        $sameCreator = !empty($heroVideo['creator_user_id']) && !empty($video['creator_user_id'])
+            ? (int) $video['creator_user_id'] === (int) $heroVideo['creator_user_id']
+            : (string) $video['creator_name'] === (string) $heroVideo['creator_name'];
+
+        if ($sameCreator) {
+            $heroCreatorVideoCount++;
+        }
+
+        if ((string) $video['category'] === (string) $heroVideo['category']) {
+            $heroCategoryVideoCount++;
+        }
+    }
+}
+
 $previewVideos = array_slice($videos, 0, 8);
 $shortVideos = array_slice($heroQueue, 0, 5);
 $homeCategories = array_slice($repository->categories(), 0, 8);
@@ -84,6 +104,25 @@ clear_old_input();
                             <span class="front-primary-action"><?= e(copy_text('common.watch_now', 'Watch now')); ?></span>
                             <span class="front-secondary-action"><?= e($heroVideo['access_label']); ?></span>
                         </div>
+                        <div class="front-hero__details">
+                            <article class="front-hero__fact">
+                                <span>Category</span>
+                                <strong><?= e($heroVideo['category']); ?></strong>
+                                <p><?= e($heroCategoryVideoCount . ' videos in this category'); ?></p>
+                            </article>
+                            <article class="front-hero__fact">
+                                <span>From this creator</span>
+                                <strong><?= e((string) $heroCreatorVideoCount); ?></strong>
+                                <p><?= e('Published videos from ' . (string) $heroVideo['creator_name']); ?></p>
+                            </article>
+                            <?php if ($heroNextVideo): ?>
+                                <article class="front-hero__fact front-hero__fact--wide">
+                                    <span>Up next</span>
+                                    <strong><?= e($heroNextVideo['title']); ?></strong>
+                                    <p><?= e($heroNextVideo['duration_label'] . ' • ' . $heroNextVideo['access_label']); ?></p>
+                                </article>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </a>
                 <aside class="front-hero__side">
@@ -101,18 +140,7 @@ clear_old_input();
                             <strong><?= e((string) $stats['premium']); ?></strong>
                         </article>
                     </div>
-                    <div class="front-side-list">
-                        <?php foreach ($heroQueue as $item): ?>
-                            <a class="front-side-item" href="<?= e(base_url('watch.php?slug=' . urlencode((string) $item['slug']))); ?>">
-                                <img src="<?= e((string) ($item['resolved_listing_poster_url'] ?? $item['resolved_poster_url'])); ?>" alt="<?= e($item['title']); ?>" style="object-position: <?= e(poster_object_position($item)); ?>;">
-                                <div>
-                                    <h3><?= e($item['title']); ?></h3>
-                                    <p><?= e($item['creator_name']); ?></p>
-                                    <span><?= e($item['duration_label']); ?> • <?= e($item['access_label']); ?></span>
-                                </div>
-                            </a>
-                        <?php endforeach; ?>
-                    </div>
+                    <?= render_public_ad_slot('home_sidebar', 'front-hero__ad'); ?>
                 </aside>
             </section>
         <?php endif; ?>

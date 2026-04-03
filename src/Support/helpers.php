@@ -389,11 +389,384 @@ function resolve_creator_media_asset(?string $url, ?string $path, ?string $provi
         }
     }
 
-    if ($normalizedProvider === 'local' && $normalizedPath !== '' && $normalizedUrl === '') {
+    if ($normalizedProvider === 'local' && $normalizedPath !== '') {
         return rtrim(local_storage_public_base_url((string) config('storage.local_public_base_url', '')), '/') . '/' . ltrim($normalizedPath, '/');
     }
 
     return $normalizedUrl !== '' ? $normalizedUrl : $fallback;
+}
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function ad_slot_definitions(): array
+{
+    return [
+        'home_sidebar' => [
+            'title' => 'Home sidebar',
+            'description' => 'Tall promo slot next to the homepage hero.',
+            'placeholder_title' => 'Ad space',
+            'placeholder_text' => '300 × 600 slot for image, script, or text ads.',
+            'size_label' => '300 × 600',
+            'shape' => 'portrait',
+            'types' => ['placeholder', 'image', 'script', 'text'],
+        ],
+        'browse_inline' => [
+            'title' => 'Browse inline',
+            'description' => 'Wide slot after the browse intro and before the featured rows.',
+            'placeholder_title' => 'Promoted space',
+            'placeholder_text' => '970 × 250 slot for browse campaigns and partner promos.',
+            'size_label' => '970 × 250',
+            'shape' => 'landscape',
+            'types' => ['placeholder', 'image', 'script', 'text'],
+        ],
+        'watch_sidebar' => [
+            'title' => 'Watch sidebar',
+            'description' => 'Sidebar slot on the video page.',
+            'placeholder_title' => 'Sidebar ad',
+            'placeholder_text' => '300 × 250 slot next to the player and related queue.',
+            'size_label' => '300 × 250',
+            'shape' => 'box',
+            'types' => ['placeholder', 'image', 'script', 'text'],
+        ],
+        'watch_preroll_video' => [
+            'title' => 'Watch pre-roll for uploaded videos',
+            'description' => 'Pre-roll shown before self-hosted or uploaded videos start.',
+            'placeholder_title' => 'Pre-roll slot',
+            'placeholder_text' => '16:9 slot supporting image, uploaded ad videos, or VAST tags.',
+            'size_label' => '16:9',
+            'shape' => 'video',
+            'types' => ['placeholder', 'image', 'video', 'vast'],
+        ],
+        'watch_preroll_embed' => [
+            'title' => 'Watch pre-roll for embeds',
+            'description' => 'Pre-roll shown before external embedded videos are loaded.',
+            'placeholder_title' => 'Embed pre-roll slot',
+            'placeholder_text' => '16:9 slot supporting image, uploaded ad videos, or VAST tags.',
+            'size_label' => '16:9',
+            'shape' => 'video',
+            'types' => ['placeholder', 'image', 'video', 'vast'],
+        ],
+        'premium_inline' => [
+            'title' => 'Premium page inline',
+            'description' => 'Wide slot inside the plans page.',
+            'placeholder_title' => 'Membership sponsor',
+            'placeholder_text' => '970 × 180 slot for sponsorships or internal promos.',
+            'size_label' => '970 × 180',
+            'shape' => 'banner',
+            'types' => ['placeholder', 'image', 'script', 'text'],
+        ],
+        'support_inline' => [
+            'title' => 'Support page inline',
+            'description' => 'Wide slot after the support hero.',
+            'placeholder_title' => 'Support sponsor',
+            'placeholder_text' => '970 × 180 slot for cross-promotions or partner messages.',
+            'size_label' => '970 × 180',
+            'shape' => 'banner',
+            'types' => ['placeholder', 'image', 'script', 'text'],
+        ],
+    ];
+}
+
+function ads_visible_for_user(?array $user = null): bool
+{
+    $user ??= current_user();
+
+    if (!$user) {
+        return true;
+    }
+
+    if ((string) ($user['role'] ?? '') === 'admin') {
+        return true;
+    }
+
+    return (string) ($user['account_tier'] ?? 'free') !== 'premium';
+}
+
+/**
+ * @return array<string, array<string, mixed>>
+ */
+function current_ad_slots(): array
+{
+    static $ads = null;
+
+    if (!is_array($ads)) {
+        $repository = new \App\Repositories\AdRepository();
+        $ads = $repository->allBySlot();
+    }
+
+    return $ads;
+}
+
+function ad_media_public_url(string $slotKey, string $asset): string
+{
+    return base_url('ad-media.php?slot=' . urlencode($slotKey) . '&asset=' . urlencode($asset));
+}
+
+function resolve_ad_media_asset(string $slotKey, ?string $url, ?string $path, ?string $provider): string
+{
+    $normalizedProvider = in_array($provider, ['local', 'wasabi', 'external'], true) ? $provider : null;
+    $normalizedPath = trim((string) $path);
+
+    if ($normalizedProvider === 'local' && $normalizedPath !== '') {
+        return ad_media_public_url($slotKey, 'image');
+    }
+
+    return resolve_creator_media_asset($url, $path, $provider, '');
+}
+
+function resolve_ad_video_asset(string $slotKey, ?string $url, ?string $path, ?string $provider): string
+{
+    $normalizedProvider = in_array($provider, ['local', 'wasabi', 'external'], true) ? $provider : null;
+    $normalizedPath = trim((string) $path);
+
+    if ($normalizedProvider === 'local' && $normalizedPath !== '') {
+        return ad_media_public_url($slotKey, 'video');
+    }
+
+    return resolve_creator_media_asset($url, $path, $provider, '');
+}
+
+function add_nonce_to_ad_scripts(string $html): string
+{
+    return (string) preg_replace_callback(
+        '/<script\b([^>]*)>/i',
+        static function (array $matches): string {
+            $attributes = $matches[1] ?? '';
+
+            if (stripos((string) $attributes, 'nonce=') !== false) {
+                return $matches[0];
+            }
+
+            return '<script' . $attributes . ' nonce="' . htmlspecialchars(csp_nonce(), ENT_QUOTES, 'UTF-8') . '">';
+        },
+        $html
+    );
+}
+
+/**
+ * @param array<string, mixed> $ad
+ */
+function ad_has_renderable_content(array $ad): bool
+{
+    if ((int) ($ad['is_active'] ?? 0) !== 1) {
+        return false;
+    }
+
+    return match ((string) ($ad['ad_type'] ?? 'placeholder')) {
+        'image' => trim((string) ($ad['image_url'] ?? '')) !== '' || trim((string) ($ad['image_path'] ?? '')) !== '',
+        'script' => trim((string) ($ad['script_code'] ?? '')) !== '',
+        'text' => trim((string) ($ad['title'] ?? '')) !== '' || trim((string) ($ad['body_text'] ?? '')) !== '',
+        'video' => trim((string) ($ad['video_url'] ?? '')) !== '' || trim((string) ($ad['video_path'] ?? '')) !== '',
+        'vast' => trim((string) ($ad['vast_tag_url'] ?? '')) !== '',
+        default => false,
+    };
+}
+
+/**
+ * @param array<string, mixed> $video
+ * @return array<string, mixed>|null
+ */
+function current_preroll_ad_for_video(array $video): ?array
+{
+    if (!ads_visible_for_user()) {
+        return null;
+    }
+
+    $slotKey = ((string) ($video['source_type'] ?? '')) === 'embed'
+        ? 'watch_preroll_embed'
+        : 'watch_preroll_video';
+    $definitions = ad_slot_definitions();
+    $definition = $definitions[$slotKey] ?? null;
+    $ad = current_ad_slots()[$slotKey] ?? null;
+
+    if (!is_array($definition) || !is_array($ad) || !ad_has_renderable_content($ad)) {
+        return null;
+    }
+
+    $skipAfterSeconds = max(0, min(30, (int) ($ad['skip_after_seconds'] ?? 5)));
+    $title = trim((string) ($ad['title'] ?? ''));
+    $bodyText = trim((string) ($ad['body_text'] ?? ''));
+    $clickUrl = trim((string) ($ad['click_url'] ?? ''));
+
+    if ((string) ($ad['ad_type'] ?? '') === 'image') {
+        $mediaUrl = resolve_ad_media_asset(
+            $slotKey,
+            isset($ad['image_url']) ? (string) $ad['image_url'] : null,
+            isset($ad['image_path']) ? (string) $ad['image_path'] : null,
+            isset($ad['image_storage_provider']) ? (string) $ad['image_storage_provider'] : null
+        );
+
+        if ($mediaUrl === '') {
+            return null;
+        }
+
+        return [
+            'slot_key' => $slotKey,
+            'ad_type' => 'image',
+            'title' => $title !== '' ? $title : (string) ($definition['title'] ?? 'Sponsored'),
+            'body_text' => $bodyText,
+            'click_url' => $clickUrl,
+            'media_url' => $mediaUrl,
+            'mime_type' => 'image/*',
+            'skip_after_seconds' => $skipAfterSeconds,
+            'tracking' => [],
+        ];
+    }
+
+    if ((string) ($ad['ad_type'] ?? '') === 'video') {
+        $mediaUrl = resolve_ad_video_asset(
+            $slotKey,
+            isset($ad['video_url']) ? (string) $ad['video_url'] : null,
+            isset($ad['video_path']) ? (string) $ad['video_path'] : null,
+            isset($ad['video_storage_provider']) ? (string) $ad['video_storage_provider'] : null
+        );
+
+        if ($mediaUrl === '') {
+            return null;
+        }
+
+        return [
+            'slot_key' => $slotKey,
+            'ad_type' => 'video',
+            'title' => $title !== '' ? $title : (string) ($definition['title'] ?? 'Sponsored'),
+            'body_text' => $bodyText,
+            'click_url' => $clickUrl,
+            'media_url' => $mediaUrl,
+            'mime_type' => trim((string) ($ad['video_mime_type'] ?? 'video/mp4')),
+            'skip_after_seconds' => $skipAfterSeconds,
+            'tracking' => [],
+        ];
+    }
+
+    if ((string) ($ad['ad_type'] ?? '') !== 'vast') {
+        return null;
+    }
+
+    $vastTagUrl = trim((string) ($ad['vast_tag_url'] ?? ''));
+
+    if ($vastTagUrl === '') {
+        return null;
+    }
+
+    $vast = (new \App\Services\VastService())->resolveTag($vastTagUrl, $skipAfterSeconds);
+
+    if (!is_array($vast) || trim((string) ($vast['media_url'] ?? '')) === '') {
+        return null;
+    }
+
+    return [
+        'slot_key' => $slotKey,
+        'ad_type' => 'vast',
+        'title' => trim((string) ($vast['title'] ?? '')) !== '' ? (string) $vast['title'] : ($title !== '' ? $title : (string) ($definition['title'] ?? 'Sponsored')),
+        'body_text' => trim((string) ($vast['body_text'] ?? '')) !== '' ? (string) $vast['body_text'] : $bodyText,
+        'click_url' => trim((string) ($vast['click_url'] ?? '')) !== '' ? (string) $vast['click_url'] : $clickUrl,
+        'media_url' => (string) $vast['media_url'],
+        'mime_type' => trim((string) ($vast['mime_type'] ?? 'video/mp4')),
+        'skip_after_seconds' => max(0, (int) ($vast['skip_after_seconds'] ?? $skipAfterSeconds)),
+        'tracking' => is_array($vast['tracking'] ?? null) ? $vast['tracking'] : [],
+    ];
+}
+
+function render_public_ad_slot(string $slotKey, string $className = ''): string
+{
+    if (!ads_visible_for_user()) {
+        return '';
+    }
+
+    $definitions = ad_slot_definitions();
+
+    if (!isset($definitions[$slotKey])) {
+        return '';
+    }
+
+    $definition = $definitions[$slotKey];
+    $ad = current_ad_slots()[$slotKey] ?? null;
+    $classes = trim('ad-slot ad-slot--' . $definition['shape'] . ' ' . $className);
+
+    if (!is_array($ad) || !ad_has_renderable_content($ad)) {
+        $title = e((string) $definition['placeholder_title']);
+        $text = e((string) $definition['placeholder_text']);
+        $slotLabel = e((string) $definition['title']);
+        $sizeLabel = e((string) ($definition['size_label'] ?? 'Ad slot'));
+
+        return <<<HTML
+<article class="{$classes} ad-slot--placeholder" aria-label="{$slotLabel}">
+  <span class="ad-slot__eyebrow">Sponsored</span>
+  <div class="ad-slot__placeholder-frame">
+    <span class="ad-slot__placeholder-size">{$sizeLabel}</span>
+    <strong>{$title}</strong>
+    <p>{$text}</p>
+  </div>
+</article>
+HTML;
+    }
+
+    $slotLabel = e((string) $definition['title']);
+    $title = trim((string) ($ad['title'] ?? ''));
+    $bodyText = trim((string) ($ad['body_text'] ?? ''));
+    $clickUrl = trim((string) ($ad['click_url'] ?? ''));
+    $adMarkup = add_nonce_to_ad_scripts((string) ($ad['script_code'] ?? ''));
+
+    return match ((string) ($ad['ad_type'] ?? 'placeholder')) {
+        'image' => render_public_image_ad($slotKey, $ad, $classes, $slotLabel, $title),
+        'script' => <<<HTML
+<section class="{$classes} ad-slot--script" aria-label="{$slotLabel}">
+  <span class="ad-slot__eyebrow">Sponsored</span>
+  <div class="ad-slot__script">{$adMarkup}</div>
+</section>
+HTML,
+        'text' => render_public_text_ad($classes, $slotLabel, $title, $bodyText, $clickUrl),
+        default => '',
+    };
+}
+
+/**
+ * @param array<string, mixed> $ad
+ */
+function render_public_image_ad(string $slotKey, array $ad, string $classes, string $slotLabel, string $title): string
+{
+    $imageUrl = resolve_ad_media_asset(
+        $slotKey,
+        isset($ad['image_url']) ? (string) $ad['image_url'] : null,
+        isset($ad['image_path']) ? (string) $ad['image_path'] : null,
+        isset($ad['image_storage_provider']) ? (string) $ad['image_storage_provider'] : null
+    );
+
+    if ($imageUrl === '') {
+        return '';
+    }
+
+    $label = $title !== '' ? $title : $slotLabel;
+    $image = '<img src="' . e($imageUrl) . '" alt="' . e($label) . '" loading="lazy">';
+    $body = '<span class="ad-slot__eyebrow">Sponsored</span><div class="ad-slot__media">' . $image . '</div>';
+    $clickUrl = trim((string) ($ad['click_url'] ?? ''));
+
+    if ($clickUrl !== '') {
+        return '<a class="' . e($classes) . ' ad-slot--image" href="' . e($clickUrl) . '" target="_blank" rel="noreferrer sponsored noopener" aria-label="' . e($label) . '">' . $body . '</a>';
+    }
+
+    return '<section class="' . e($classes) . ' ad-slot--image" aria-label="' . e($label) . '">' . $body . '</section>';
+}
+
+function render_public_text_ad(string $classes, string $slotLabel, string $title, string $bodyText, string $clickUrl): string
+{
+    $safeTitle = e($title !== '' ? $title : $slotLabel);
+    $safeBody = e($bodyText !== '' ? $bodyText : 'Sponsored message');
+    $link = '';
+
+    if ($clickUrl !== '') {
+        $link = '<a class="text-link" href="' . e($clickUrl) . '" target="_blank" rel="noreferrer sponsored noopener">Learn more</a>';
+    }
+
+    return <<<HTML
+<section class="{$classes} ad-slot--text" aria-label="{$slotLabel}">
+  <span class="ad-slot__eyebrow">Sponsored</span>
+  <strong>{$safeTitle}</strong>
+  <p>{$safeBody}</p>
+  {$link}
+</section>
+HTML;
 }
 
 function creator_public_name(?array $user, string $fallback = 'Creator'): string

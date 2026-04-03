@@ -317,18 +317,431 @@ function mountCatalog() {
 }
 
 function mountWatchMedia() {
-  const players = document.querySelectorAll(".watch-player");
+  const shells = document.querySelectorAll(".watch-player-shell");
 
-  players.forEach((player) => {
+  const applyAspectToShell = (shell, ratio) => {
+    if (!(shell instanceof HTMLElement) || !Number.isFinite(ratio) || ratio <= 0) {
+      return;
+    }
+
+    shell.style.setProperty("--watch-media-ratio", `${ratio}`);
+    shell.classList.toggle("is-portrait", ratio < 1);
+    shell.classList.toggle("is-landscape", ratio >= 1);
+  };
+
+  const inferAspectFromPoster = (shell) => {
+    if (!(shell instanceof HTMLElement)) {
+      return;
+    }
+
+    const poster = shell.dataset.watchPoster ?? "";
+
+    if (poster === "") {
+      return;
+    }
+
+    const image = new Image();
+    image.addEventListener("load", () => {
+      if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        applyAspectToShell(shell, image.naturalWidth / image.naturalHeight);
+      }
+    }, { once: true });
+    image.src = poster;
+  };
+
+  const parsePrerollPayload = (shell) => {
+    if (!(shell instanceof HTMLElement)) {
+      return null;
+    }
+
+    const raw = shell.dataset.watchPreroll ?? "";
+
+    if (raw === "") {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch (_error) {
+      return null;
+    }
+  };
+
+  const fireTrackingPixels = (urls) => {
+    if (!Array.isArray(urls)) {
+      return;
+    }
+
+    urls.forEach((url) => {
+      if (typeof url !== "string" || url.trim() === "") {
+        return;
+      }
+
+      const beacon = new Image();
+      const separator = url.includes("?") ? "&" : "?";
+      beacon.src = `${url}${separator}cb=${Date.now()}`;
+    });
+  };
+
+  const mountPrerollForShell = (shell) => {
+    if (!(shell instanceof HTMLElement)) {
+      return;
+    }
+
+    const payload = parsePrerollPayload(shell);
+
+    if (!payload) {
+      return;
+    }
+
+    const layer = shell.querySelector("[data-watch-preroll-layer]");
+    const adVideo = shell.querySelector("[data-watch-preroll-video]");
+    const adImage = shell.querySelector("[data-watch-preroll-image]");
+    const skipButton = shell.querySelector("[data-watch-preroll-skip]");
+    const cta = shell.querySelector("[data-watch-preroll-cta]");
+    const progressBar = shell.querySelector("[data-watch-preroll-progress]");
+    const mainVideo = shell.querySelector("[data-watch-player-video]");
+    const playerRoot = shell.querySelector("[data-watch-player]");
+    const embed = shell.querySelector(".watch-embed");
+    const embedSource = embed instanceof HTMLIFrameElement ? (embed.dataset.watchEmbedSrc ?? "") : "";
+    const skipAfterSeconds = Math.max(0, Number(payload.skip_after_seconds ?? 5) || 0);
+    const tracking = payload.tracking && typeof payload.tracking === "object" ? payload.tracking : {};
+    const firedEvents = new Set();
+    const adType = String(payload.ad_type ?? "video");
+    const isImageAd = adType === "image";
+      let released = false;
+      let imageElapsedSeconds = 0;
+      let imageIntervalId = 0;
+
+    if (!(layer instanceof HTMLElement)) {
+      return;
+    }
+
+      const fireEvent = (eventName) => {
+      if (firedEvents.has(eventName)) {
+        return;
+      }
+
+      firedEvents.add(eventName);
+        fireTrackingPixels(tracking[eventName]);
+      };
+
+      const restoreShellAspect = () => {
+        if (mainVideo instanceof HTMLVideoElement && mainVideo.videoWidth > 0 && mainVideo.videoHeight > 0) {
+          applyAspectToShell(shell, mainVideo.videoWidth / mainVideo.videoHeight);
+          return;
+        }
+
+        inferAspectFromPoster(shell);
+      };
+
+      const releaseContent = ({ skipped = false } = {}) => {
+        if (released) {
+          return;
+        }
+
+      released = true;
+      shell.classList.remove("is-preroll-active");
+      layer.hidden = true;
+      if (adVideo instanceof HTMLVideoElement) {
+        adVideo.pause();
+      }
+
+        if (imageIntervalId) {
+          window.clearInterval(imageIntervalId);
+          imageIntervalId = 0;
+        }
+
+        restoreShellAspect();
+
+        if (skipped) {
+          fireEvent("skip");
+        } else {
+        fireEvent("complete");
+      }
+
+      if (embed instanceof HTMLIFrameElement && embedSource !== "" && embed.getAttribute("src") !== embedSource) {
+        embed.setAttribute("src", embedSource);
+      }
+
+      if (playerRoot instanceof HTMLElement) {
+        playerRoot.classList.remove("is-preroll-pending");
+      }
+
+      if (mainVideo instanceof HTMLVideoElement) {
+        void mainVideo.play().catch(() => {});
+      }
+
+      if (progressBar instanceof HTMLElement) {
+        progressBar.style.width = "100%";
+      }
+    };
+
+    const updateSkipButton = () => {
+      if (!(skipButton instanceof HTMLButtonElement)) {
+        return;
+      }
+
+      const currentProgress = isImageAd
+        ? imageElapsedSeconds
+        : ((adVideo instanceof HTMLVideoElement && Number.isFinite(adVideo.currentTime)) ? adVideo.currentTime : 0);
+      const remaining = Math.max(0, Math.ceil(skipAfterSeconds - currentProgress));
+      const canSkip = skipAfterSeconds === 0 || currentProgress >= skipAfterSeconds;
+
+      skipButton.disabled = !canSkip;
+      skipButton.textContent = isImageAd
+        ? (canSkip ? "Continue" : `Continue in ${remaining}s`)
+        : (canSkip ? "Skip ad" : `Skip in ${remaining}s`);
+    };
+
+    const updateProgressBar = () => {
+      if (!(progressBar instanceof HTMLElement)) {
+        return;
+      }
+
+      let progress = 0;
+
+      if (isImageAd) {
+        progress = skipAfterSeconds > 0 ? Math.min(1, imageElapsedSeconds / skipAfterSeconds) : 1;
+      } else if (adVideo instanceof HTMLVideoElement && Number.isFinite(adVideo.duration) && adVideo.duration > 0) {
+        progress = Math.min(1, adVideo.currentTime / adVideo.duration);
+      }
+
+      progressBar.style.width = `${Math.max(0, Math.min(100, progress * 100))}%`;
+    };
+
+    shell.classList.add("is-preroll-active");
+    layer.hidden = false;
+
+    if (cta instanceof HTMLAnchorElement) {
+      cta.addEventListener("click", () => {
+        fireTrackingPixels(tracking.clickTracking);
+      });
+    }
+
+    if (skipButton instanceof HTMLButtonElement) {
+      skipButton.addEventListener("click", () => {
+        if (skipButton.disabled) {
+          return;
+        }
+
+        releaseContent({ skipped: true });
+      });
+    }
+
+    if (playerRoot instanceof HTMLElement) {
+      playerRoot.classList.add("is-preroll-pending");
+    }
+
+    if (isImageAd) {
+      if (adVideo instanceof HTMLVideoElement) {
+        adVideo.hidden = true;
+        adVideo.removeAttribute("src");
+      }
+
+        if (adImage instanceof HTMLImageElement) {
+          adImage.hidden = false;
+          adImage.src = String(payload.media_url ?? "");
+          if (adImage.complete && adImage.naturalWidth > 0 && adImage.naturalHeight > 0) {
+            applyAspectToShell(shell, adImage.naturalWidth / adImage.naturalHeight);
+          } else {
+            adImage.addEventListener("load", () => {
+              if (adImage.naturalWidth > 0 && adImage.naturalHeight > 0) {
+                applyAspectToShell(shell, adImage.naturalWidth / adImage.naturalHeight);
+              }
+            }, { once: true });
+          }
+        }
+
+        fireEvent("impression");
+      fireEvent("start");
+      updateSkipButton();
+      updateProgressBar();
+
+      if (skipAfterSeconds === 0) {
+        releaseContent();
+        return;
+      }
+
+      imageIntervalId = window.setInterval(() => {
+        imageElapsedSeconds += 1;
+        updateSkipButton();
+        updateProgressBar();
+
+        if (imageElapsedSeconds >= skipAfterSeconds) {
+          releaseContent();
+        }
+      }, 1000);
+
+      return;
+    }
+
+    if (!(adVideo instanceof HTMLVideoElement)) {
+      return;
+    }
+
+    if (adImage instanceof HTMLImageElement) {
+      adImage.hidden = true;
+      adImage.removeAttribute("src");
+    }
+
+      adVideo.hidden = false;
+      adVideo.src = String(payload.media_url ?? "");
+      adVideo.muted = true;
+      adVideo.playsInline = true;
+      adVideo.preload = "auto";
+
+      adVideo.addEventListener("loadedmetadata", () => {
+        if (adVideo.videoWidth > 0 && adVideo.videoHeight > 0) {
+          applyAspectToShell(shell, adVideo.videoWidth / adVideo.videoHeight);
+        }
+      }, { once: true });
+
+      adVideo.addEventListener("play", () => {
+        fireEvent("impression");
+      fireEvent("start");
+    }, { once: true });
+
+    adVideo.addEventListener("timeupdate", () => {
+      updateSkipButton();
+      updateProgressBar();
+
+      if (!Number.isFinite(adVideo.duration) || adVideo.duration <= 0) {
+        return;
+      }
+
+      const progress = adVideo.currentTime / adVideo.duration;
+
+      if (progress >= 0.25) {
+        fireEvent("firstQuartile");
+      }
+
+      if (progress >= 0.5) {
+        fireEvent("midpoint");
+      }
+
+      if (progress >= 0.75) {
+        fireEvent("thirdQuartile");
+      }
+    });
+
+    adVideo.addEventListener("ended", () => {
+      releaseContent();
+    });
+
+    adVideo.addEventListener("error", () => {
+      releaseContent();
+    });
+
+    updateSkipButton();
+    updateProgressBar();
+    void adVideo.play().catch(() => {
+      updateSkipButton();
+      updateProgressBar();
+    });
+  };
+
+  shells.forEach((shell) => {
+    const player = shell.querySelector("[data-watch-player-video]");
+
+    if (!(player instanceof HTMLVideoElement)) {
+      inferAspectFromPoster(shell);
+      mountPrerollForShell(shell);
+      return;
+    }
+
+    mountPrerollForShell(shell);
+  });
+
+  const players = document.querySelectorAll("[data-watch-player]");
+
+  const formatTime = (seconds) => {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+      return "0:00";
+    }
+
+    const totalSeconds = Math.floor(seconds);
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = totalSeconds % 60;
+    const hours = Math.floor(minutes / 60);
+    const displayMinutes = hours > 0 ? minutes % 60 : minutes;
+
+    if (hours > 0) {
+      return `${hours}:${String(displayMinutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    }
+
+    return `${displayMinutes}:${String(remainingSeconds).padStart(2, "0")}`;
+  };
+
+  players.forEach((root) => {
+    if (!(root instanceof HTMLElement)) {
+      return;
+    }
+
+    const player = root.querySelector("[data-watch-player-video]");
+
     if (!(player instanceof HTMLVideoElement)) {
       return;
     }
 
     const shell = player.closest(".watch-player-shell");
+    const playButton = root.querySelector("[data-watch-toggle-play]");
+    const playLabel = root.querySelector("[data-watch-play-label]");
+    const muteButton = root.querySelector("[data-watch-toggle-mute]");
+    const fullscreenButton = root.querySelector("[data-watch-toggle-fullscreen]");
+    const seekInput = root.querySelector("[data-watch-seek]");
+    const volumeInput = root.querySelector("[data-watch-volume]");
+    const currentTimeNode = root.querySelector("[data-watch-current-time]");
+    const durationNode = root.querySelector("[data-watch-duration]");
+    const HIDE_DELAY_MS = 2400;
+    const SEEK_STEP_SECONDS = 10;
+    let hideTimer = 0;
 
     if (!(shell instanceof HTMLElement)) {
       return;
     }
+
+    const clearHideTimer = () => {
+      if (hideTimer !== 0) {
+        window.clearTimeout(hideTimer);
+        hideTimer = 0;
+      }
+    };
+
+    const showControls = () => {
+      root.classList.remove("is-controls-hidden");
+    };
+
+    const hideControls = () => {
+      if (player.paused) {
+        return;
+      }
+
+      root.classList.add("is-controls-hidden");
+    };
+
+    const scheduleControlsHide = () => {
+      clearHideTimer();
+
+      if (player.paused) {
+        showControls();
+        return;
+      }
+
+      hideTimer = window.setTimeout(() => {
+        hideControls();
+      }, HIDE_DELAY_MS);
+    };
+
+    const handleActivity = () => {
+      showControls();
+      scheduleControlsHide();
+    };
+
+    const isInteractiveTarget = (target) =>
+      target instanceof HTMLElement &&
+      (target.closest("button, input, select, textarea, a") instanceof HTMLElement);
 
     const applyAspect = () => {
       const width = player.videoWidth;
@@ -338,17 +751,228 @@ function mountWatchMedia() {
         return;
       }
 
-      const ratio = width / height;
-      shell.style.setProperty("--watch-media-ratio", `${ratio}`);
-      shell.classList.toggle("is-portrait", ratio < 1);
-      shell.classList.toggle("is-landscape", ratio >= 1);
+      applyAspectToShell(shell, width / height);
     };
+
+    const syncPlayState = () => {
+      const isPaused = player.paused;
+      root.classList.toggle("is-playing", !isPaused);
+
+      if (playLabel instanceof HTMLElement) {
+        playLabel.textContent = isPaused ? "Play" : "Pause";
+      }
+
+      if (isPaused) {
+        clearHideTimer();
+        showControls();
+      } else {
+        scheduleControlsHide();
+      }
+    };
+
+    const syncTimeState = () => {
+      const duration = Number.isFinite(player.duration) ? player.duration : 0;
+      const currentTime = Number.isFinite(player.currentTime) ? player.currentTime : 0;
+      const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+      if (currentTimeNode instanceof HTMLElement) {
+        currentTimeNode.textContent = formatTime(currentTime);
+      }
+
+      if (durationNode instanceof HTMLElement) {
+        durationNode.textContent = formatTime(duration);
+      }
+
+      if (seekInput instanceof HTMLInputElement) {
+        seekInput.value = String(progress);
+      }
+    };
+
+    const syncVolumeState = () => {
+      const muted = player.muted || player.volume === 0;
+      root.classList.toggle("is-muted", muted);
+
+      if (muteButton instanceof HTMLElement) {
+        muteButton.textContent = muted ? "Unmute" : "Mute";
+      }
+
+      if (volumeInput instanceof HTMLInputElement) {
+        volumeInput.value = String(player.muted ? 0 : player.volume);
+      }
+    };
+
+    const togglePlayback = async () => {
+      if (player.paused) {
+        try {
+          await player.play();
+        } catch (_error) {
+          return;
+        }
+      } else {
+        player.pause();
+      }
+    };
+
+    const toggleFullscreen = async () => {
+      if (!(document.fullscreenElement instanceof Element)) {
+        try {
+          await shell.requestFullscreen();
+        } catch (_error) {
+          return;
+        }
+
+        return;
+      }
+
+      if (document.fullscreenElement === shell) {
+        try {
+          await document.exitFullscreen();
+        } catch (_error) {
+          return;
+        }
+      }
+    };
+
+    const seekBy = (deltaSeconds) => {
+      if (!Number.isFinite(player.duration) || player.duration <= 0) {
+        return;
+      }
+
+      player.currentTime = Math.min(player.duration, Math.max(0, player.currentTime + deltaSeconds));
+      syncTimeState();
+    };
+
+    const handleKeyboardShortcut = (event) => {
+      if (!(event instanceof KeyboardEvent)) {
+        return;
+      }
+
+      if (isInteractiveTarget(event.target) && event.target !== root) {
+        return;
+      }
+
+      const key = event.key;
+
+      if (key === " " || key === "Spacebar") {
+        event.preventDefault();
+        handleActivity();
+        void togglePlayback();
+        return;
+      }
+
+      if (key === "m" || key === "M") {
+        event.preventDefault();
+        player.muted = !player.muted;
+        syncVolumeState();
+        handleActivity();
+        return;
+      }
+
+      if (key === "f" || key === "F") {
+        event.preventDefault();
+        handleActivity();
+        void toggleFullscreen();
+        return;
+      }
+
+      if (key === "ArrowLeft") {
+        event.preventDefault();
+        seekBy(-SEEK_STEP_SECONDS);
+        handleActivity();
+        return;
+      }
+
+      if (key === "ArrowRight") {
+        event.preventDefault();
+        seekBy(SEEK_STEP_SECONDS);
+        handleActivity();
+      }
+    };
+
+    root.tabIndex = 0;
+
+    if (playButton instanceof HTMLButtonElement) {
+      playButton.addEventListener("click", () => {
+        handleActivity();
+        void togglePlayback();
+      });
+    }
+
+    if (muteButton instanceof HTMLButtonElement) {
+      muteButton.addEventListener("click", () => {
+        player.muted = !player.muted;
+        syncVolumeState();
+        handleActivity();
+      });
+    }
+
+    if (fullscreenButton instanceof HTMLButtonElement) {
+      fullscreenButton.addEventListener("click", () => {
+        handleActivity();
+        void toggleFullscreen();
+      });
+    }
+
+    if (seekInput instanceof HTMLInputElement) {
+      seekInput.addEventListener("input", () => {
+        const duration = Number.isFinite(player.duration) ? player.duration : 0;
+
+        if (duration <= 0) {
+          return;
+        }
+
+        player.currentTime = (Number(seekInput.value) / 100) * duration;
+        syncTimeState();
+        handleActivity();
+      });
+    }
+
+    if (volumeInput instanceof HTMLInputElement) {
+      volumeInput.addEventListener("input", () => {
+        const volume = Math.min(1, Math.max(0, Number(volumeInput.value)));
+        player.volume = volume;
+        player.muted = volume === 0;
+        syncVolumeState();
+        handleActivity();
+      });
+    }
+
+    player.addEventListener("click", () => {
+      root.focus({ preventScroll: true });
+      handleActivity();
+      void togglePlayback();
+    });
+    root.addEventListener("mousemove", handleActivity);
+    root.addEventListener("mouseenter", () => {
+      root.focus({ preventScroll: true });
+      handleActivity();
+    });
+    root.addEventListener("mouseleave", () => {
+      if (!player.paused) {
+        hideControls();
+      }
+    });
+    root.addEventListener("touchstart", handleActivity, { passive: true });
+    root.addEventListener("keydown", handleKeyboardShortcut);
+    player.addEventListener("loadedmetadata", applyAspect);
+    player.addEventListener("loadedmetadata", syncTimeState);
+    player.addEventListener("play", syncPlayState);
+    player.addEventListener("pause", syncPlayState);
+    player.addEventListener("timeupdate", syncTimeState);
+    player.addEventListener("durationchange", syncTimeState);
+    player.addEventListener("volumechange", syncVolumeState);
+    document.addEventListener("fullscreenchange", () => {
+      handleActivity();
+    });
 
     if (player.readyState >= 1) {
       applyAspect();
-    } else {
-      player.addEventListener("loadedmetadata", applyAspect, { once: true });
+      syncTimeState();
     }
+
+    syncPlayState();
+    syncVolumeState();
+    showControls();
   });
 }
 
@@ -647,6 +1271,99 @@ function mountCopyEditor() {
   updateActiveSection();
 }
 
+function mountAdSlotBrowser() {
+  const root = document.querySelector("[data-ad-slot-browser]");
+
+  if (!(root instanceof HTMLElement)) {
+    return;
+  }
+
+  const selector = root.querySelector("[data-ad-slot-selector]");
+  const summary = root.querySelector("[data-ad-slot-summary]");
+  const panels = document.querySelectorAll("[data-ad-slot-panel]");
+
+  if (!(selector instanceof HTMLSelectElement) || !(summary instanceof HTMLElement) || panels.length === 0) {
+    return;
+  }
+
+  const updateActiveSlot = () => {
+    const activeId = selector.value;
+
+    panels.forEach((panel) => {
+      if (!(panel instanceof HTMLElement)) {
+        return;
+      }
+
+      const matches = panel.dataset.adSlotPanel === activeId;
+      panel.hidden = !matches;
+      panel.style.display = matches ? "" : "none";
+    });
+
+    const activePanel = Array.from(panels).find((panel) => panel instanceof HTMLElement && panel.dataset.adSlotPanel === activeId);
+    const titleNode = summary.querySelector("strong");
+    const descriptionNode = summary.querySelector("p");
+
+    if (!(activePanel instanceof HTMLElement)) {
+      return;
+    }
+
+    if (titleNode instanceof HTMLElement) {
+      titleNode.textContent = activePanel.dataset.adSlotTitle || "Ad slot";
+    }
+
+    if (descriptionNode instanceof HTMLElement) {
+      descriptionNode.textContent = activePanel.dataset.adSlotDescription || "Manage one ad slot at a time.";
+    }
+  };
+
+  selector.addEventListener("change", updateActiveSlot);
+  updateActiveSlot();
+}
+
+function mountAdEditors() {
+  const forms = document.querySelectorAll("[data-ad-editor]");
+
+  if (forms.length === 0) {
+    return;
+  }
+
+  const syncGroups = (form) => {
+    const selector = form.querySelector("[data-ad-type-selector]");
+
+    if (!(selector instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    const activeType = selector.value;
+    const groups = form.querySelectorAll("[data-ad-type-group]");
+
+    groups.forEach((group) => {
+      if (!(group instanceof HTMLElement)) {
+        return;
+      }
+
+      const matches = group.dataset.adTypeGroup === activeType;
+      group.hidden = !matches;
+      group.style.display = matches ? "" : "none";
+    });
+  };
+
+  forms.forEach((form) => {
+    if (!(form instanceof HTMLFormElement)) {
+      return;
+    }
+
+    const selector = form.querySelector("[data-ad-type-selector]");
+
+    if (!(selector instanceof HTMLSelectElement)) {
+      return;
+    }
+
+    syncGroups(form);
+    selector.addEventListener("change", () => syncGroups(form));
+  });
+}
+
 mountCatalog();
 mountWatchMedia();
 mountPublicShell();
@@ -654,3 +1371,5 @@ mountCookieNotice();
 mountAgeGate();
 mountAdminMediaForms();
 mountCopyEditor();
+mountAdSlotBrowser();
+mountAdEditors();

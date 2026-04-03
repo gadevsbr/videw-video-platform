@@ -98,6 +98,8 @@ $bootPayload = default_bootstrap_payload('browse', [
             </aside>
         </section>
 
+        <?= render_public_ad_slot('browse_inline', 'front-section__ad'); ?>
+
         <?php if ($featured !== []): ?>
             <section class="shell-section">
                 <div class="shell-section__header">

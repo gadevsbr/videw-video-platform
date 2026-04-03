@@ -5,10 +5,12 @@ declare(strict_types=1);
 require __DIR__ . '/src/bootstrap.php';
 
 use App\Repositories\AuditLogRepository;
+use App\Repositories\AdRepository;
 use App\Repositories\CreatorApplicationRepository;
 use App\Repositories\SettingsRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\VideoRepository;
+use App\Services\AdService;
 use App\Services\AdminVideoService;
 use App\Services\BillingService;
 use App\Services\MediaAccessService;
@@ -16,15 +18,17 @@ use App\Services\MediaAccessService;
 ensure_admin();
 
 $settingsRepository = new SettingsRepository();
+$adsRepository = new AdRepository();
 $auditLogs = new AuditLogRepository();
 $creatorApplications = new CreatorApplicationRepository();
 $usersRepository = new UserRepository();
 $videoRepository = new VideoRepository();
+$adService = new AdService();
 $adminVideos = new AdminVideoService();
 $mediaAccess = new MediaAccessService();
 $billing = new BillingService();
 $dbReady = $settingsRepository->dbReady();
-$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'creator_requests', 'users', 'settings', 'copy', 'legal', 'activity'];
+$validScreens = ['overview', 'storage', 'billing', 'publish', 'library', 'moderation', 'creator_requests', 'users', 'settings', 'ads', 'copy', 'legal', 'activity'];
 $screen = (string) ($_GET['screen'] ?? 'overview');
 $screen = in_array($screen, $validScreens, true) ? $screen : 'overview';
 $screenUrl = static fn (string $target): string => base_url('admin.php?screen=' . urlencode($target));
@@ -143,6 +147,25 @@ if (is_post_request()) {
         }
 
         redirect('admin.php?screen=settings');
+    }
+
+    if ($action === 'save_ad_slot') {
+        try {
+            $slotKey = trim((string) ($_POST['slot_key'] ?? ''));
+            $savedAd = $adService->saveSlot($slotKey, $_POST, $_FILES, $adsRepository->findBySlot($slotKey));
+
+            $auditLogs->record($actorId ?: null, 'ad.saved', 'ad_slot', null, 'Updated an ad slot.', [
+                'slot' => $slotKey,
+                'type' => $savedAd['ad_type'] ?? 'placeholder',
+                'active' => !empty($savedAd['is_active']) ? 1 : 0,
+            ]);
+            flash('success', 'Ad slot saved.');
+        } catch (RuntimeException $exception) {
+            flash('error', $exception->getMessage());
+        }
+
+        $target = trim((string) ($_POST['return_screen'] ?? 'ads')) ?: 'ads';
+        redirect('admin.php?screen=' . urlencode($target) . '&slot=' . urlencode($slotKey));
     }
 
     if ($action === 'save_copy_settings') {
@@ -563,6 +586,12 @@ $appSettings = [
     'public_head_scripts' => (string) config('app.public_head_scripts'),
     'timezone' => (string) env_value('VIDEW_TIMEZONE', 'America/Sao_Paulo'),
 ];
+$adSlots = ad_slot_definitions();
+$adsBySlot = $dbReady ? $adsRepository->allBySlot() : [];
+$adStats = $dbReady ? $adsRepository->stats() : ['slots' => count($adSlots), 'active' => 0, 'configured' => 0];
+$firstAdSlot = array_key_first($adSlots);
+$requestedAdSlot = trim((string) ($_GET['slot'] ?? ''));
+$activeAdSlot = ($requestedAdSlot !== '' && isset($adSlots[$requestedAdSlot])) ? $requestedAdSlot : ($firstAdSlot ?? '');
 $copySections = copy_admin_sections();
 $copySettings = current_copy_settings();
 $copyHandledKeys = [];
@@ -678,6 +707,20 @@ $freeVideoCount = max(0, count($allVideos) - $premiumVideoCount);
 $billingConfigured = $billing->isConfigured();
 $webhookConfigured = $billing->webhookConfigured();
 $webhookUrl = $billing->webhookUrl();
+$recentAdminActivity = $auditLogs->recent(6);
+$internalApiHealthy = $dbReady && is_file(ROOT_PATH . '/api/videos.php') && is_file(ROOT_PATH . '/api/session.php');
+$wasabiConfigured = $wasabiEnabled
+    && trim((string) ($settings['wasabi_endpoint'] ?? '')) !== ''
+    && trim((string) ($settings['wasabi_region'] ?? '')) !== ''
+    && trim((string) ($settings['wasabi_bucket'] ?? '')) !== ''
+    && trim((string) config('storage.wasabi_access_key', '')) !== ''
+    && trim((string) config('storage.wasabi_secret_key', '')) !== '';
+$storageHealthLabel = $wasabiEnabled
+    ? ($wasabiConfigured ? 'Wasabi ready' : 'Wasabi incomplete')
+    : 'Local storage';
+$billingHealthLabel = $billingConfigured
+    ? ($webhookConfigured ? 'Checkout + webhook ready' : 'Checkout ready, webhook pending')
+    : 'Billing not configured';
 
 if ($screen === 'activity' && (string) ($_GET['export'] ?? '') === 'csv') {
     $exportItems = $auditLogs->filtered($activityFilters, 2000);
@@ -769,6 +812,13 @@ $screenMeta = [
         'eyebrow' => 'SETTINGS',
         'title' => 'General app settings.',
         'copy' => 'Update the public name, support details, links, and timezone.',
+        'primary' => ['label' => 'Open ads', 'href' => $screenUrl('ads')],
+        'secondary' => ['label' => 'Open copy', 'href' => $screenUrl('copy')],
+    ],
+    'ads' => [
+        'eyebrow' => 'ADS',
+        'title' => 'Ad slots and sponsored placements.',
+        'copy' => 'Manage image, script, and text ads across the public site. Premium members never see these placements.',
         'primary' => ['label' => 'Open copy', 'href' => $screenUrl('copy')],
         'secondary' => ['label' => 'Open legal', 'href' => $screenUrl('legal')],
     ],
@@ -804,6 +854,7 @@ $screenLabels = [
     'creator_requests' => 'Creator requests',
     'users' => 'Users',
     'settings' => 'Settings',
+    'ads' => 'Ads',
     'copy' => 'Copy',
     'legal' => 'Legal',
     'activity' => 'Activity',
@@ -812,7 +863,7 @@ $adminNavGroups = [
     'Control center' => ['overview'],
     'Content' => ['publish', 'library', 'moderation'],
     'Members and revenue' => ['creator_requests', 'users', 'billing'],
-    'Site' => ['settings', 'copy', 'legal'],
+    'Site' => ['settings', 'ads', 'copy', 'legal'],
     'System' => ['storage', 'activity'],
 ];
 $currentScreen = $screenMeta[$screen];
@@ -934,120 +985,186 @@ $currentScreen = $screenMeta[$screen];
             <section class="catalog-section">
                 <div class="section-heading">
                     <div>
-                        <span class="eyebrow">WORKFLOWS</span>
-                        <h2>One screen for each admin job</h2>
+                        <span class="eyebrow">OVERVIEW</span>
+                        <h2>Platform KPIs</h2>
                     </div>
-                    <p>Jump straight to the task you need.</p>
+                    <p>Start here for catalog, member, billing, and operations visibility.</p>
                 </div>
-                <div class="admin-overview-grid">
-                    <a class="admin-link-card" href="<?= e($screenUrl('storage')); ?>">
-                        <span class="eyebrow">STORAGE</span>
-                        <strong>Uploads and delivery</strong>
-                        <p>Choose where files are stored and how protected playback works.</p>
-                        <span class="text-link">Open storage</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('billing')); ?>">
-                        <span class="eyebrow">BILLING</span>
-                        <strong>Plans and payments</strong>
-                        <p>Set up Premium pricing, secure checkout, and member access.</p>
-                        <span class="text-link">Open billing</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('publish')); ?>">
-                        <span class="eyebrow">PUBLISH</span>
-                        <strong>Add new videos</strong>
-                        <p>Create new items from uploads or supported links.</p>
-                        <span class="text-link">Open publish</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('library')); ?>">
-                        <span class="eyebrow">LIBRARY</span>
-                        <strong>Library management</strong>
-                        <p>See what is live, featured, or ready for changes.</p>
-                        <span class="text-link">Open library</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('moderation')); ?>">
-                        <span class="eyebrow">MODERATION</span>
-                        <strong>Review drafts and flagged items</strong>
-                        <p>Move items between draft, approved, and flagged with internal notes.</p>
-                        <span class="text-link">Open moderation</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('creator_requests')); ?>">
-                        <span class="eyebrow">CREATORS</span>
-                        <strong>Creator access requests</strong>
-                        <p>Review creator applications and approve studio access.</p>
-                        <span class="text-link">Open creator requests</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('users')); ?>">
-                        <span class="eyebrow">USERS</span>
-                        <strong>Roles, creators, and suspensions</strong>
-                        <p>Manage account roles, creator access, and suspended users.</p>
-                        <span class="text-link">Open users</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('settings')); ?>">
-                        <span class="eyebrow">SETTINGS</span>
-                        <strong>Branding and contact</strong>
-                        <p>Update the public site name, support email, links, and timezone.</p>
-                        <span class="text-link">Open settings</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('legal')); ?>">
-                        <span class="eyebrow">LEGAL</span>
-                        <strong>Footer, policies, and cookie copy</strong>
-                        <p>Edit the public rules page, policy text, cookie notice, and footer navigation.</p>
-                        <span class="text-link">Open legal</span>
-                    </a>
-                    <a class="admin-link-card" href="<?= e($screenUrl('activity')); ?>">
-                        <span class="eyebrow">ACTIVITY</span>
-                        <strong>Audit trail of admin actions</strong>
-                        <p>Review recent changes across videos, users, storage, and settings.</p>
-                        <span class="text-link">Open activity</span>
-                    </a>
+                <div class="admin-kpi-grid">
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Videos</span>
+                        <strong><?= e((string) $adminStats['total']); ?></strong>
+                        <small><?= e((string) $adminStats['approved']); ?> live</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Draft queue</span>
+                        <strong><?= e((string) $adminStats['draft']); ?></strong>
+                        <small>Waiting for review</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Creators</span>
+                        <strong><?= e((string) $userStats['creators']); ?></strong>
+                        <small><?= e((string) $creatorRequestStats['pending']); ?> requests pending</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Members</span>
+                        <strong><?= e((string) $userStats['users']); ?></strong>
+                        <small><?= e((string) ($userStats['premium'] ?? 0)); ?> premium</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Premium videos</span>
+                        <strong><?= e((string) $premiumVideoCount); ?></strong>
+                        <small><?= e((string) $freeVideoCount); ?> free</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Featured</span>
+                        <strong><?= e((string) $featuredCount); ?></strong>
+                        <small>Homepage and curated spots</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Active ads</span>
+                        <strong><?= e((string) ($adStats['active'] ?? 0)); ?></strong>
+                        <small><?= e((string) ($adStats['configured'] ?? 0)); ?> configured slots</small>
+                    </article>
+                    <article class="mini-stat admin-kpi-card">
+                        <span>Suspended</span>
+                        <strong><?= e((string) $userStats['suspended']); ?></strong>
+                        <small>Accounts under restriction</small>
+                    </article>
                 </div>
             </section>
 
             <section class="catalog-section">
                 <div class="section-heading">
                     <div>
-                        <span class="eyebrow">STATUS</span>
-                        <h2>Quick numbers</h2>
+                        <span class="eyebrow">OPERATIONS</span>
+                        <h2>Health, billing, and pending work</h2>
                     </div>
-                    <p>High-level counts across the whole catalog.</p>
+                    <p>Use the dashboard to verify service readiness, revenue setup, and what still needs attention.</p>
                 </div>
-                <div class="admin-summary-grid">
-                    <article class="mini-stat">
-                        <span>Published</span>
-                        <strong><?= e((string) $stats['videos']); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Creators</span>
-                        <strong><?= e((string) $stats['creators']); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Featured</span>
-                        <strong><?= e((string) $featuredCount); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Premium videos</span>
-                        <strong><?= e((string) $premiumVideoCount); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>External</span>
-                        <strong><?= e((string) $externalCount); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Embeds</span>
-                        <strong><?= e((string) $embedCount); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Wasabi</span>
-                        <strong><?= e((string) $wasabiCount); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Draft queue</span>
-                        <strong><?= e((string) $adminStats['draft']); ?></strong>
-                    </article>
-                    <article class="mini-stat">
-                        <span>Users</span>
-                        <strong><?= e((string) $userStats['users']); ?></strong>
-                    </article>
+                <div class="admin-overview-shell">
+                    <div class="admin-overview-main">
+                        <article class="admin-overview-panel">
+                            <div class="admin-overview-panel__header">
+                                <div>
+                                    <span class="eyebrow">HEALTH</span>
+                                    <h3>Platform status</h3>
+                                </div>
+                                <a class="text-link" href="<?= e($screenUrl('activity')); ?>">Open activity</a>
+                            </div>
+                            <div class="admin-health-grid">
+                                <article class="mini-stat admin-health-card">
+                                    <span>Internal API</span>
+                                    <strong><?= $internalApiHealthy ? 'Healthy' : 'Attention'; ?></strong>
+                                    <small><?= $dbReady ? 'Database and core API files available' : 'Database unavailable'; ?></small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Storage</span>
+                                    <strong><?= e($wasabiEnabled ? 'Wasabi' : 'Local'); ?></strong>
+                                    <small><?= e($storageHealthLabel); ?></small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Wasabi delivery</span>
+                                    <strong><?= $privateDelivery ? 'Signed' : 'Public'; ?></strong>
+                                    <small><?= e($wasabiBucket !== '' ? $wasabiBucket : 'Bucket not set'); ?></small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Stripe</span>
+                                    <strong><?= $billingConfigured ? 'Ready' : 'Pending'; ?></strong>
+                                    <small><?= e($billingHealthLabel); ?></small>
+                                </article>
+                            </div>
+                        </article>
+
+                        <article class="admin-overview-panel">
+                            <div class="admin-overview-panel__header">
+                                <div>
+                                    <span class="eyebrow">BILLING</span>
+                                    <h3>Revenue setup snapshot</h3>
+                                </div>
+                                <a class="text-link" href="<?= e($screenUrl('billing')); ?>">Open billing</a>
+                            </div>
+                            <div class="admin-billing-grid">
+                                <article class="mini-stat admin-health-card">
+                                    <span>Plan</span>
+                                    <strong><?= e((string) $billingSettings['premium_plan_name']); ?></strong>
+                                    <small><?= e((string) $billingSettings['premium_price_label']); ?></small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Premium members</span>
+                                    <strong><?= e((string) ($userStats['premium'] ?? 0)); ?></strong>
+                                    <small>Accounts with paid access</small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Webhook</span>
+                                    <strong><?= $webhookConfigured ? 'Connected' : 'Pending'; ?></strong>
+                                    <small><?= e($webhookUrl); ?></small>
+                                </article>
+                                <article class="mini-stat admin-health-card">
+                                    <span>Premium catalog</span>
+                                    <strong><?= e((string) $premiumVideoCount); ?></strong>
+                                    <small><?= e((string) $freeVideoCount); ?> free titles still available</small>
+                                </article>
+                            </div>
+                        </article>
+                    </div>
+
+                    <aside class="admin-overview-side">
+                        <article class="admin-overview-panel">
+                            <div class="admin-overview-panel__header">
+                                <div>
+                                    <span class="eyebrow">PENDING</span>
+                                    <h3>Pending items</h3>
+                                </div>
+                            </div>
+                            <div class="admin-overview-activity">
+                                <a class="admin-overview-activity__item" href="<?= e($screenUrl('moderation')); ?>">
+                                    <strong>Review moderation queue</strong>
+                                    <span><?= e((string) $adminStats['draft']); ?> drafts currently need a decision.</span>
+                                </a>
+                                <a class="admin-overview-activity__item" href="<?= e($screenUrl('creator_requests')); ?>">
+                                    <strong>Review creator applications</strong>
+                                    <span><?= e((string) $creatorRequestStats['pending']); ?> creator requests are waiting.</span>
+                                </a>
+                                <a class="admin-overview-activity__item" href="<?= e($screenUrl('billing')); ?>">
+                                    <strong><?= $webhookConfigured ? 'Review billing setup' : 'Finish Stripe setup'; ?></strong>
+                                    <span><?= $webhookConfigured ? 'Checkout is configured. Review pricing and account health.' : 'Add the webhook and keys to finish paid access setup.'; ?></span>
+                                </a>
+                                <a class="admin-overview-activity__item" href="<?= e($screenUrl('ads')); ?>">
+                                    <strong><?= (int) ($adStats['active'] ?? 0) > 0 ? 'Review active ads' : 'Set up ad slots'; ?></strong>
+                                    <span><?= (int) ($adStats['active'] ?? 0) > 0 ? e((string) ($adStats['active'] ?? 0)) . ' ad slots are currently active.' : 'No ad slots are active yet.'; ?></span>
+                                </a>
+                                <a class="admin-overview-activity__item" href="<?= e($screenUrl('storage')); ?>">
+                                    <strong><?= $wasabiEnabled ? 'Check storage delivery' : 'Storage uses local uploads'; ?></strong>
+                                    <span><?= e($storageHealthLabel); ?></span>
+                                </a>
+                            </div>
+                        </article>
+
+                        <article class="admin-overview-panel">
+                            <div class="admin-overview-panel__header">
+                                <div>
+                                    <span class="eyebrow">ACTIVITY</span>
+                                    <h3>Latest actions</h3>
+                                </div>
+                                <a class="text-link" href="<?= e($screenUrl('activity')); ?>">Open full log</a>
+                            </div>
+                            <div class="admin-overview-activity">
+                                <?php foreach ($recentAdminActivity as $item): ?>
+                                    <article class="admin-overview-activity__item">
+                                        <strong><?= e((string) ($item['summary'] ?? 'Activity')); ?></strong>
+                                        <span><?= e((string) (($item['actor_name'] ?? '') !== '' ? $item['actor_name'] : ($item['actor_email'] ?? 'System'))); ?> • <?= e((string) ($item['created_at'] ?? '')); ?></span>
+                                    </article>
+                                <?php endforeach; ?>
+                                <?php if ($recentAdminActivity === []): ?>
+                                    <article class="admin-overview-activity__item">
+                                        <strong>No recent activity yet</strong>
+                                        <span>Admin actions will appear here as soon as the workspace is used.</span>
+                                    </article>
+                                <?php endif; ?>
+                            </div>
+                        </article>
+                    </aside>
                 </div>
             </section>
         <?php endif; ?>
@@ -1737,10 +1854,6 @@ $currentScreen = $screenMeta[$screen];
                                     </div>
                                 </div>
                                 <div class="admin-library-card__aside">
-                                    <label class="bulk-select admin-library-card__select admin-library-card__select--mobile">
-                                        <input type="checkbox" name="video_ids[]" value="<?= e((string) $video['id']); ?>" form="library-bulk-form">
-                                        <span>Select</span>
-                                    </label>
                                     <div class="admin-library-card__actions">
                                         <form method="post">
                                             <input type="hidden" name="action" value="toggle_featured">
@@ -2176,6 +2289,253 @@ $currentScreen = $screenMeta[$screen];
                             <p>Useful for Google Analytics, AdSense, verification tags, pixels, and other monetization or measurement platforms.</p>
                         </article>
                     </div>
+                </div>
+            </section>
+        <?php endif; ?>
+
+        <?php if ($screen === 'ads'): ?>
+            <section class="catalog-section">
+                <div class="section-heading">
+                    <div>
+                        <span class="eyebrow">ADS</span>
+                        <h2>Sponsored placements</h2>
+                    </div>
+                    <p>Manage image, script, and text ads across the public site. Premium members never see these placements.</p>
+                </div>
+                <div class="admin-summary-grid">
+                    <article class="mini-stat">
+                        <span>Total slots</span>
+                        <strong><?= e((string) ($adStats['slots'] ?? count($adSlots))); ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Configured</span>
+                        <strong><?= e((string) ($adStats['configured'] ?? 0)); ?></strong>
+                    </article>
+                    <article class="mini-stat">
+                        <span>Active</span>
+                        <strong><?= e((string) ($adStats['active'] ?? 0)); ?></strong>
+                    </article>
+                </div>
+                <div class="copy-editor-controls" data-ad-slot-browser>
+                    <label class="copy-editor-controls__label">
+                        <span>Ad slot</span>
+                        <select data-ad-slot-selector>
+                            <?php foreach ($adSlots as $slotKey => $slotDefinition): ?>
+                                <option value="<?= e($slotKey); ?>" <?= $activeAdSlot === $slotKey ? 'selected' : ''; ?>><?= e((string) $slotDefinition['title']); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <div class="copy-editor-controls__summary" data-ad-slot-summary>
+                        <strong><?= e((string) (($activeAdSlot !== '' && isset($adSlots[$activeAdSlot]['title'])) ? $adSlots[$activeAdSlot]['title'] : 'Ad slot')); ?></strong>
+                        <p><?= e((string) (($activeAdSlot !== '' && isset($adSlots[$activeAdSlot]['description'])) ? $adSlots[$activeAdSlot]['description'] : 'Manage one ad slot at a time.')); ?></p>
+                    </div>
+                </div>
+                <div class="admin-ads-grid">
+                    <?php foreach ($adSlots as $slotKey => $slotDefinition): ?>
+                        <?php
+                        $slotAd = $adsBySlot[$slotKey] ?? null;
+                        $slotType = (string) ($slotAd['ad_type'] ?? 'placeholder');
+                          $slotTypes = is_array($slotDefinition['types'] ?? null) ? $slotDefinition['types'] : ['placeholder', 'image', 'script', 'text'];
+                          $slotPreviewUrl = is_array($slotAd)
+                              ? resolve_ad_media_asset(
+                                  $slotKey,
+                                  isset($slotAd['image_url']) ? (string) $slotAd['image_url'] : null,
+                                  isset($slotAd['image_path']) ? (string) $slotAd['image_path'] : null,
+                                  isset($slotAd['image_storage_provider']) ? (string) $slotAd['image_storage_provider'] : null
+                              )
+                              : '';
+                          $slotPreviewVideoUrl = is_array($slotAd)
+                              ? resolve_ad_video_asset(
+                                  $slotKey,
+                                  isset($slotAd['video_url']) ? (string) $slotAd['video_url'] : null,
+                                  isset($slotAd['video_path']) ? (string) $slotAd['video_path'] : null,
+                                  isset($slotAd['video_storage_provider']) ? (string) $slotAd['video_storage_provider'] : null
+                              )
+                            : '';
+                        ?>
+                        <article class="admin-ad-card" data-ad-slot-panel="<?= e($slotKey); ?>" data-ad-slot-title="<?= e((string) $slotDefinition['title']); ?>" data-ad-slot-description="<?= e((string) $slotDefinition['description'] . ' ' . $slotDefinition['placeholder_text']); ?>"<?= $slotKey === $activeAdSlot ? '' : ' hidden'; ?> style="<?= $slotKey === $activeAdSlot ? '' : 'display:none;'; ?>">
+                            <div class="admin-ad-card__preview">
+                                <?php if ($slotType === 'image' && $slotPreviewUrl !== ''): ?>
+                                    <div class="ad-slot ad-slot--<?= e((string) $slotDefinition['shape']); ?> ad-slot--admin-preview">
+                                        <span class="ad-slot__eyebrow">Sponsored</span>
+                                        <div class="ad-slot__media">
+                                            <img src="<?= e($slotPreviewUrl); ?>" alt="<?= e((string) ($slotAd['title'] ?? $slotDefinition['title'])); ?>">
+                                        </div>
+                                    </div>
+                                <?php elseif ($slotType === 'text' && is_array($slotAd) && ((string) ($slotAd['title'] ?? '') !== '' || (string) ($slotAd['body_text'] ?? '') !== '')): ?>
+                                    <div class="ad-slot ad-slot--<?= e((string) $slotDefinition['shape']); ?> ad-slot--text ad-slot--admin-preview">
+                                        <span class="ad-slot__eyebrow">Sponsored</span>
+                                        <strong><?= e((string) ($slotAd['title'] ?? $slotDefinition['placeholder_title'])); ?></strong>
+                                        <p><?= e((string) ($slotAd['body_text'] ?? 'Text ad preview')); ?></p>
+                                    </div>
+                                <?php elseif ($slotType === 'script' && is_array($slotAd) && trim((string) ($slotAd['script_code'] ?? '')) !== ''): ?>
+                                    <div class="ad-slot ad-slot--<?= e((string) $slotDefinition['shape']); ?> ad-slot--placeholder ad-slot--admin-preview">
+                                        <span class="ad-slot__eyebrow">Script ad</span>
+                                        <strong><?= e((string) (($slotAd['title'] ?? '') !== '' ? $slotAd['title'] : $slotDefinition['title'])); ?></strong>
+                                        <p><?= e(strlen((string) $slotAd['script_code']) . ' characters saved. Script ads run only on public pages.'); ?></p>
+                                    </div>
+                                <?php elseif ($slotType === 'video' && is_array($slotAd) && $slotPreviewVideoUrl !== ''): ?>
+                                    <div class="ad-slot ad-slot--<?= e((string) $slotDefinition['shape']); ?> ad-slot--video ad-slot--admin-preview">
+                                        <span class="ad-slot__eyebrow">Video pre-roll</span>
+                                        <div class="ad-slot__media">
+                                            <video src="<?= e($slotPreviewVideoUrl); ?>" muted playsinline preload="metadata"></video>
+                                        </div>
+                                        <strong><?= e((string) (($slotAd['title'] ?? '') !== '' ? $slotAd['title'] : $slotDefinition['title'])); ?></strong>
+                                        <p><?= e('Skip after ' . max(0, (int) ($slotAd['skip_after_seconds'] ?? 5)) . 's'); ?></p>
+                                    </div>
+                                <?php elseif ($slotType === 'vast' && is_array($slotAd) && trim((string) ($slotAd['vast_tag_url'] ?? '')) !== ''): ?>
+                                    <div class="ad-slot ad-slot--<?= e((string) $slotDefinition['shape']); ?> ad-slot--placeholder ad-slot--admin-preview">
+                                        <span class="ad-slot__eyebrow">VAST pre-roll</span>
+                                        <strong><?= e((string) (($slotAd['title'] ?? '') !== '' ? $slotAd['title'] : $slotDefinition['title'])); ?></strong>
+                                        <p><?= e('VAST tag saved. Skip after ' . max(0, (int) ($slotAd['skip_after_seconds'] ?? 5)) . 's unless the tag defines its own offset.'); ?></p>
+                                    </div>
+                                <?php else: ?>
+                                    <?= render_public_ad_slot($slotKey, 'ad-slot--admin-preview'); ?>
+                                <?php endif; ?>
+                            </div>
+                            <form method="post" enctype="multipart/form-data" class="admin-form-shell admin-ad-card__form" data-ad-editor>
+                                <input type="hidden" name="action" value="save_ad_slot">
+                                <input type="hidden" name="slot_key" value="<?= e($slotKey); ?>">
+                                <input type="hidden" name="return_screen" value="ads">
+                                <?= csrf_input('admin'); ?>
+                                <section class="admin-form-section">
+                                    <div class="admin-form-section__header">
+                                        <h3><?= e((string) $slotDefinition['title']); ?></h3>
+                                        <p><?= e((string) $slotDefinition['description']); ?> <?= e((string) $slotDefinition['placeholder_text']); ?></p>
+                                    </div>
+                                    <div class="admin-fields admin-fields--two">
+                                        <label class="checkbox-line">
+                                            <input type="checkbox" name="is_active" value="1" <?= !empty($slotAd['is_active']) ? 'checked' : ''; ?>>
+                                            <span>Show this ad slot on public pages</span>
+                                        </label>
+                                        <label>
+                                            <span>Ad type</span>
+                                            <select name="ad_type" data-ad-type-selector>
+                                                <?php foreach ($slotTypes as $supportedType): ?>
+                                                    <?php
+                                                    $typeLabels = [
+                                                        'placeholder' => 'Placeholder only',
+                                                        'image' => 'Image ad',
+                                                        'script' => 'Script embed',
+                                                        'text' => 'Text ad',
+                                                        'video' => 'Video pre-roll',
+                                                        'vast' => 'VAST pre-roll',
+                                                    ];
+                                                    ?>
+                                                    <option value="<?= e((string) $supportedType); ?>" <?= $slotType === $supportedType ? 'selected' : ''; ?>><?= e($typeLabels[(string) $supportedType] ?? ucfirst((string) $supportedType)); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </label>
+                                        <label>
+                                            <span>Headline / label</span>
+                                            <input type="text" name="title" value="<?= e((string) ($slotAd['title'] ?? '')); ?>" placeholder="Optional ad title">
+                                        </label>
+                                        <label>
+                                            <span>Click URL</span>
+                                            <input type="text" name="click_url" value="<?= e((string) ($slotAd['click_url'] ?? '')); ?>" placeholder="https://partner.example">
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section class="admin-form-section" data-ad-type-group="image"<?= $slotType === 'image' ? '' : ' hidden'; ?>>
+                                    <div class="admin-form-section__header">
+                                        <h3>Image ad</h3>
+                                        <p>Upload the creative here. The click URL above will be used when visitors click the image.</p>
+                                    </div>
+                                    <div class="admin-fields admin-fields--two">
+                                        <label>
+                                            <span>Image upload</span>
+                                            <input type="file" name="image_file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif">
+                                        </label>
+                                        <label class="checkbox-line">
+                                            <input type="checkbox" name="remove_image" value="1">
+                                            <span>Remove the current uploaded image</span>
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section class="admin-form-section" data-ad-type-group="video"<?= $slotType === 'video' ? '' : ' hidden'; ?>>
+                                    <div class="admin-form-section__header">
+                                        <h3>Video pre-roll</h3>
+                                        <p>Use an uploaded ad video or a direct HTTPS video file URL. This slot plays before the main video for non-Premium viewers.</p>
+                                    </div>
+                                    <div class="admin-fields admin-fields--two">
+                                        <label>
+                                            <span>Direct video URL</span>
+                                            <input type="text" name="video_url" value="<?= e((string) ($slotAd['video_url'] ?? '')); ?>" placeholder="https://cdn.example.com/preroll.mp4">
+                                        </label>
+                                        <label>
+                                            <span>Skip after (seconds)</span>
+                                            <input type="number" name="skip_after_seconds" min="0" max="30" step="1" value="<?= e((string) ($slotAd['skip_after_seconds'] ?? 5)); ?>">
+                                        </label>
+                                        <label>
+                                            <span>Video upload</span>
+                                            <input type="file" name="video_file" accept=".mp4,.m4v,.webm,.mov,video/mp4,video/webm,video/quicktime">
+                                        </label>
+                                        <label class="checkbox-line">
+                                            <input type="checkbox" name="remove_video" value="1">
+                                            <span>Remove the current uploaded video</span>
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section class="admin-form-section" data-ad-type-group="vast"<?= $slotType === 'vast' ? '' : ' hidden'; ?>>
+                                    <div class="admin-form-section__header">
+                                        <h3>VAST pre-roll</h3>
+                                        <p>Paste a public HTTPS VAST tag URL. The player resolves the tag on the backend and plays the first supported media file before the video starts.</p>
+                                    </div>
+                                    <div class="admin-fields admin-fields--two">
+                                        <label>
+                                            <span>VAST tag URL</span>
+                                            <input type="text" name="vast_tag_url" value="<?= e((string) ($slotAd['vast_tag_url'] ?? '')); ?>" placeholder="https://ads.example.com/vast.xml">
+                                        </label>
+                                        <label>
+                                            <span>Fallback skip after (seconds)</span>
+                                            <input type="number" name="skip_after_seconds" min="0" max="30" step="1" value="<?= e((string) ($slotAd['skip_after_seconds'] ?? 5)); ?>">
+                                        </label>
+                                    </div>
+                                </section>
+
+                                <section class="admin-form-section" data-ad-type-group="script"<?= $slotType === 'script' ? '' : ' hidden'; ?>>
+                                    <div class="admin-form-section__header">
+                                        <h3>Script ad</h3>
+                                        <p>Paste the ad network code exactly as required. Premium members still will not see this slot.</p>
+                                    </div>
+                                    <label>
+                                        <span>Script code</span>
+                                        <textarea name="script_code" rows="8" placeholder="<script async src=&quot;...&quot;></script><?= PHP_EOL; ?><script>/* ad code */</script>"><?= e((string) ($slotAd['script_code'] ?? '')); ?></textarea>
+                                    </label>
+                                </section>
+
+                                <section class="admin-form-section" data-ad-type-group="text"<?= $slotType === 'text' ? '' : ' hidden'; ?>>
+                                    <div class="admin-form-section__header">
+                                        <h3>Text ad</h3>
+                                        <p>Use this for internal promos, affiliate callouts, or sponsor text blocks.</p>
+                                    </div>
+                                    <label>
+                                        <span>Text content</span>
+                                        <textarea name="body_text" rows="6" placeholder="Simple sponsored message or promo copy."><?= e((string) ($slotAd['body_text'] ?? '')); ?></textarea>
+                                    </label>
+                                </section>
+
+                                <button class="button" type="submit">Save ad slot</button>
+                            </form>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+                <div class="admin-sidebar-stack">
+                    <article class="compliance-card">
+                        <h3>Visibility rule</h3>
+                        <p>Ads are hidden only for signed-in Premium members. Admins still see the public placements so every slot can be reviewed in context.</p>
+                    </article>
+                    <article class="compliance-card">
+                        <h3>Pre-roll note</h3>
+                        <p>Pre-roll slots play only on the watch page. Uploaded videos use a true pre-roll gate, while embeds delay the iframe until the ad completes or is skipped.</p>
+                    </article>
+                    <article class="compliance-card">
+                        <h3>Script note</h3>
+                        <p>Script ads run only on public pages. If your ad network needs extra script origins, update the Content Security Policy in production too.</p>
+                    </article>
                 </div>
             </section>
         <?php endif; ?>

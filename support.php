@@ -39,6 +39,8 @@ $supportEmail = (string) config('app.support_email');
             </div>
         </section>
 
+        <?= render_public_ad_slot('support_inline', 'front-section__ad'); ?>
+
         <section class="catalog-section">
             <div class="section-heading">
                 <div>

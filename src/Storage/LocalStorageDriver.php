@@ -101,6 +101,19 @@ final class LocalStorageDriver implements StorageDriverInterface
                 'webp' => ['image/webp'],
                 'gif' => ['image/gif'],
             ],
+            'ads' => [
+                'jpg' => ['image/jpeg'],
+                'jpeg' => ['image/jpeg'],
+                'png' => ['image/png'],
+                'webp' => ['image/webp'],
+                'gif' => ['image/gif'],
+            ],
+            'ad-videos' => [
+                'mp4' => ['video/mp4', 'application/mp4'],
+                'm4v' => ['video/mp4', 'video/x-m4v'],
+                'webm' => ['video/webm'],
+                'mov' => ['video/quicktime'],
+            ],
             default => [],
         };
 

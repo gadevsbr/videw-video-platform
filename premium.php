@@ -116,6 +116,8 @@ $flashSuccess = flash('success');
             </aside>
         </section>
 
+        <?= render_public_ad_slot('premium_inline', 'front-section__ad'); ?>
+
         <section class="catalog-section">
             <div class="section-heading">
                 <div>
