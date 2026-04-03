@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.1.0] - 2026-04-03
+## [1.0.2] - 2026-04-03
 
 ### Added
 - Added a complete ad-slot system with admin management, public placements, placeholders, image/script/text ad formats, and Premium-aware visibility rules so signed-in Premium members do not see ads.
