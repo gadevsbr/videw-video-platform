@@ -1,35 +1,48 @@
 # Contributing
 
-Thanks for considering a contribution to `VIDEW`.
+Thanks for your interest in improving `VIDEW`.
 
-`VIDEW` is distributed under a source-available non-commercial license. By submitting a contribution, you agree that your contribution may be distributed under the same license.
+VIDEW is distributed under a **source-available non-commercial license**. By contributing, you agree that your contribution may be distributed under the same license.
 
-## Before You Start
+## Before You Open a Pull Request
 
-- Use the issue tracker for bugs, regressions, and feature discussions.
-- Do not open public issues for security vulnerabilities. Use the process in [SECURITY.md](SECURITY.md).
-- Keep pull requests focused. Small, reviewable changes are preferred over broad refactors.
+- use GitHub issues for bugs, regressions, documentation improvements, and feature discussions
+- do **not** report security vulnerabilities in public issues; use [SECURITY.md](SECURITY.md)
+- keep changes focused and reviewable
+- avoid bundling unrelated refactors with product or bug-fix work
 
 ## Local Setup
 
 1. Copy `.env.example` to `.env`.
-2. Fill in local values for database and URLs.
-3. Run `npm install` if you want to refresh the vendored `gUI` runtime.
-4. Import `db/schema.sql`, or run the web installer at `install.php`.
-5. Optionally import `db/seed-demo.sql` if you want example catalog records.
+2. Fill in the local database and URL values.
+3. Import `db/schema.sql`, or use `install.php` for a local installer-driven setup.
+4. Optionally import `db/seed-demo.sql` if your local checkout includes a demo seed file.
+5. Run `npm install` only if you need to maintain or refresh the vendored `gUI` runtime.
 
-## Pull Request Guidelines
+## Contribution Priorities
 
-- Target the smallest change set that solves the problem.
-- Update `README.md` when setup, runtime behavior, or deployment steps change.
-- Keep secrets, `.env`, uploaded media, and local archives out of the branch.
-- If you update `@bragamateus/gui`, run `npm run sync:gui` and include the refreshed files in `assets/vendor/gui`.
-- Run the relevant validation before opening a PR:
+Contributions are especially useful in these areas:
+
+- documentation clarity
+- deployment compatibility
+- admin and creator workflow polish
+- billing and storage robustness
+- UI/UX consistency
+- security hardening
+
+## Pull Request Checklist
+
+- keep the change set small enough to review comfortably
+- update documentation when setup, deployment, runtime behavior, or public positioning changes
+- do not commit secrets, `.env`, uploaded media, archives, or local test artifacts
+- if you update `@bragamateus/gui`, run `npm run sync:gui` and commit the refreshed files in `assets/vendor/gui`
+- run relevant validation before opening the PR:
   - `php -l` for changed PHP files
   - `npm run check:js`
 
 ## Style Notes
 
-- Follow the existing PHP style in the repository.
-- Prefer simple server-side flows over framework-heavy abstractions.
-- Keep shared-hosting compatibility in mind when introducing dependencies or build steps.
+- follow the existing PHP style already used in the repository
+- prefer straightforward server-side flows over framework-heavy abstractions
+- keep shared-hosting compatibility in mind when adding dependencies or build requirements
+- avoid introducing documentation claims for features that do not exist in the codebase

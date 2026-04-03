@@ -1,102 +1,226 @@
 # VIDEW
 
-Source-available video platform starter built with `PHP`, `MySQL`, `CSS`, `JavaScript`, and `gUI`.
+Source-available PHP video platform starter with subscriptions, creator workflows, and an admin suite.
 
-`VIDEW` is designed to be flexible: you can run it as a general video platform or enable optional access controls such as an `age gate` when your project requires it.
+VIDEW is built for teams that want to launch a branded video product without starting from a framework-heavy codebase. It combines a public catalog, gated Premium access, creator applications, a creator studio, Stripe billing, flexible media storage, and a multi-screen admin area in a stack that still works on shared hosting and small VPS deployments.
 
-Commercial use is not included by default. If you want to use `VIDEW` in a paid product, customer project, hosted service, monetized site, or other commercial environment, you need prior authorization from the project maintainer. Contact: `gadevs2020@gmail.com`. See [LICENSE](LICENSE).
+Commercial use is **not included by default**. This repository is distributed under a source-available non-commercial license. If you want to use VIDEW in a paid product, a client project, a hosted service, or any revenue-generating environment, contact `gadevs2020@gmail.com` for authorization. See [LICENSE](LICENSE).
 
-`VIDEW` includes:
+## Why Videw
 
-- free vs premium catalog gating
-- Stripe subscriptions with Hosted Checkout and Billing Portal
-- local uploads, Wasabi uploads, and external embeds
-- account registration, password reset, and TOTP MFA
-- optional age gate, legal pages, cookie notice, and editable footer content
-- a multi-screen admin suite for publishing, moderation, billing, and settings
-- a lightweight web installer for shared hosting and small VPS deployments
+- Launch faster with a production-oriented PHP/MySQL starter instead of wiring subscriptions, uploads, and account flows from scratch.
+- Run on lightweight hosting: shared hosting, cPanel-style environments, and small VPS setups are all supported.
+- Mix free and Premium content in one product with clear gating rules.
+- Support creators with public channel pages, creator applications, a studio, analytics, and profile assets.
+- Manage content, billing, legal text, footer links, and public copy from the admin area.
+- Keep the frontend lightweight with `gUI` while still shipping a modern catalog and player experience.
 
-## Frontend Runtime
+## What This Project Is
 
-The frontend was built with `gUI`.
+VIDEW is a source-available starter for:
 
-- GitHub: `https://github.com/gadevsbr/gUI`
-- npm: `https://www.npmjs.com/package/@bragamateus/gui`
+- subscription video platforms
+- membership-based content libraries
+- creator-led video sites
+- private catalog products with free and paid access tiers
+- internal or client-evaluated product prototypes that need real account, billing, and admin workflows
 
-The repository keeps a vendored runtime copy in `assets/vendor/gui` so production servers do not need `node_modules`.
-If you update the dependency locally, run `npm run sync:gui` to refresh the committed runtime files.
+It is intentionally flexible. You can run it as a general video platform, or enable optional controls such as an age gate when your use case requires them.
 
-## Repository Layout
+## Who This Is For
 
-- `index.php`: public home and catalog
-- `watch.php`: video detail and player page
-- `premium.php`: public plans page
-- `login.php`, `register.php`, `account.php`: account flow
-- `forgot-password.php`, `reset-password.php`, `mfa-challenge.php`: security flows
+- developers who want a plain PHP codebase instead of a framework-heavy stack
+- founders validating a niche video membership product
+- agencies building an internal evaluation, proof of concept, or non-commercial prototype
+- teams that need admin workflows, billing, and media storage options already wired together
+
+## When This Is Not a Fit
+
+VIDEW is probably not the right choice if you need:
+
+- a fully managed SaaS platform with zero server administration
+- enterprise-grade transcoding, DRM, or multi-region media infrastructure out of the box
+- a permissive OSI-approved open-source license
+- a React / Laravel / Symfony codebase
+- commercial deployment rights without separate authorization
+
+## Key Features
+
+### Public product
+
+- public homepage, browse flow, player page, support page, legal pages, and account pages
+- free vs Premium video access rules
+- optional age gate and cookie notice
+- configurable footer, legal page copy, and public text from the admin panel
+
+### Accounts and security
+
+- email/password registration and sign-in
+- password reset flow
+- TOTP-based MFA with backup codes
+- session hardening, CSRF protection, and rate limiting on sensitive flows
+
+### Billing
+
+- Stripe Hosted Checkout for new Premium subscriptions
+- Stripe Billing Portal for self-service plan management
+- webhook-based subscription sync back into the local account model
+
+### Media and storage
+
+- local file uploads
+- Wasabi object storage
+- external direct video URLs
+- external embed support for supported providers
+- private Wasabi playback support with signed URLs/proxying where applicable
+
+### Admin suite
+
+- content publishing and editing
+- moderation queue
+- user management
+- creator request review
+- billing and storage configuration
+- legal/footer/site settings
+- public copy editing
+- audit activity log
+
+### Creator workflows
+
+- "Become creator" request flow
+- creator approval path in admin
+- creator studio with publish, manage, analytics, and profile screens
+- public creator channel pages with avatar, banner, bio, and channel slug
+
+## Demo / Screenshots
+
+**Demo coming soon.**
+
+If you are the maintainer, add screenshots or GIFs for:
+
+1. homepage / browse experience
+2. player page
+3. admin dashboard
+4. creator studio
+5. billing / Premium page
+
+Recommended structure:
+
+- `docs/screenshots/home.png`
+- `docs/screenshots/player.png`
+- `docs/screenshots/admin.png`
+- `docs/screenshots/studio.png`
+
+Then embed them here with standard Markdown image links.
+
+## Use Cases
+
+- premium content library with monthly subscriptions
+- creator platform with staff moderation before publish
+- gated training or private media portal
+- branded prototype for a future subscription product
+- non-commercial internal product exploration that still needs real billing and access logic
+
+## Tech Stack
+
+- PHP 8.1+
+- MySQL 5.7+ or MariaDB 10.4+
+- JavaScript + CSS
+- [`gUI`](https://github.com/gadevsbr/gUI) for frontend runtime
+- Stripe for subscriptions
+- Wasabi or local disk for storage
+
+## Project Structure
+
+- `index.php`: public homepage
+- `browse.php`: browse and filtering experience
+- `watch.php`: player page
+- `premium.php`: plan and upgrade page
+- `account.php`: account, security, membership, creator entry
+- `studio.php`: creator studio
+- `channel.php`: public creator profile page
 - `admin.php`: admin suite
-- `rules.php`, `terms.php`, `privacy.php`, `cookies.php`: public legal pages
 - `install.php`: web installer
-- `api/videos.php`, `api/session.php`: public JSON endpoints
 - `webhooks/stripe.php`: Stripe webhook endpoint
-- `assets/js/app.js`: public frontend app
-- `assets/vendor/gui`: committed `gUI` runtime for hosting without npm
-- `db/schema.sql`: clean install schema
-- `db/seed-demo.sql`: optional demo catalog seed
-- `scripts/sync-gui-runtime.mjs`: refresh the vendored `gUI` runtime from npm
-
-## Requirements
-
-- PHP `8.1+`
-- MySQL `5.7+` or MariaDB `10.4+`
-- PHP extensions:
-  - `pdo_mysql`
-  - `curl`
-  - `mbstring`
-  - `json`
-  - `fileinfo`
-- Apache, Nginx, IIS, or any PHP-compatible shared hosting / VPS
+- `media.php`: gated media delivery
 
 ## Quick Start
 
-### Option 1: Web Installer
+### Option 1: Web installer
 
-1. Upload the project to your server.
+1. Upload the repository to your server.
 2. Open `https://your-domain.example/install.php`.
-3. Fill in the site URL and MySQL credentials.
+3. Enter the app URL and database credentials.
 4. Choose whether to import the optional demo catalog.
-5. Finish the install.
-6. Register the first account on `register.php` to become the initial admin.
-7. Delete `install.php` from the server after the setup completes.
+5. Finish the installer.
+6. Register the first account on `register.php`. That account becomes the initial admin.
+7. Delete `install.php` from the server after setup.
 
-The installer writes `.env`, imports `db/schema.sql`, optionally imports `db/seed-demo.sql`, prepares `storage/`, and locks itself after success.
+The installer:
 
-### Option 2: Manual Install
+- writes `.env`
+- imports `db/schema.sql`
+- can optionally import `db/seed-demo.sql` when that file is present
+- prepares `storage/`
+- locks itself after success
+
+### Option 2: Manual install
 
 1. Copy `.env.example` to `.env`.
-2. Fill in environment-specific values.
-3. Create the database configured in `VIDEW_DB_DATABASE`.
+2. Fill in the environment values for your server.
+3. Create the database defined in `VIDEW_DB_DATABASE`.
 4. Import `db/schema.sql`.
-5. Optionally import `db/seed-demo.sql`.
-6. Open `register.php` and create the first account. That account becomes `admin`.
+5. Optionally import `db/seed-demo.sql` if you include a demo seed file in your deployment.
+6. Open `register.php` and create the first account.
 
-## Environment
+## Installation Options
 
-All secrets and deployment-specific values belong in `.env`.
+### Shared hosting
 
-Examples:
+- use the web installer if possible
+- keep the committed `assets/vendor/gui` runtime so production does not need `node_modules`
+- make sure `storage/` is writable
+- delete `install.php` after setup
 
+### VPS / self-managed server
+
+- use either the installer or manual install
+- configure your web server to block access to sensitive files and folders
+- set up HTTPS before enabling production cookies and webhooks
+- use `deploy/nginx.conf.example` or `deploy/web.config` if you are not on Apache
+
+More deployment guidance is in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+## Environment Configuration
+
+All secrets and environment-specific values belong in `.env`.
+
+Important groups:
+
+- app identity and base URL
 - database credentials
-- base URL and support email
+- session and security settings
 - Stripe keys and webhook secret
 - Wasabi credentials
-- footer and legal page content
-- cookie notice text
+- footer, legal, and public copy values
 
-The admin suite can write app, storage, billing, and legal settings back into `.env`.
+Examples are included in `.env.example`.
 
-## Admin Suite
+Important production variables:
 
-The admin panel is organized by job:
+- `VIDEW_BASE_URL`
+- `VIDEW_TRUSTED_HOSTS`
+- `VIDEW_SESSION_SECURE_COOKIE=1`
+- `VIDEW_FORCE_HTTPS=1`
+- `VIDEW_SECURITY_HSTS_ENABLED=1`
+
+Enable `VIDEW_TRUST_PROXY_HEADERS=1` only if you control the reverse proxy in front of PHP.
+
+## Admin Suite Overview
+
+The admin area is organized by job, not by generic settings buckets.
+
+Main screens:
 
 - `overview`
 - `storage`
@@ -104,89 +228,103 @@ The admin panel is organized by job:
 - `publish`
 - `library`
 - `moderation`
+- `creator_requests`
 - `users`
 - `settings`
 - `copy`
 - `legal`
 - `activity`
 
-It includes:
+What the admin suite covers:
 
-- video create/edit/delete and bulk actions
-- moderation workflow
-- user role and suspension management
+- video publishing and editing
+- moderation and review
+- user roles and suspensions
+- creator approvals
 - Stripe and Wasabi configuration
-- public text editing for homepage, browse, plans, support, watch, account, auth, and age-gate copy
-- audit log filtering and CSV export
-- footer, terms, privacy, cookies, and notice editing
+- footer and legal page management
+- public copy editing
+- audit activity visibility
 
-## Billing
+## Creator Experience
 
-`VIDEW` uses Stripe Hosted Checkout for new Premium subscriptions and Stripe Billing Portal for self-service account management.
+VIDEW includes a complete creator path:
 
-Setup flow:
+1. a regular user account applies through "Become creator"
+2. admin reviews the request
+3. approved users get creator role access
+4. creator manages uploads, analytics, and public profile from the studio
 
-1. Open `Admin > Billing`.
-2. Save the Stripe secret key, publishable key, webhook signing secret, and recurring `price_...` ID.
-3. Create a webhook for `https://your-domain.example/webhooks/stripe.php`.
-4. Subscribe at minimum to:
-   - `checkout.session.completed`
-   - `invoice.paid`
-   - `invoice.payment_failed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
+The studio currently includes:
 
-## Storage
+- overview
+- publish
+- manage videos
+- analytics
+- profile
 
-The project supports:
+## Billing Overview
+
+Billing is implemented with Stripe and focuses on a simple recurring Premium model.
+
+Current flow:
+
+- Hosted Checkout for new subscriptions
+- Billing Portal for plan management
+- webhook sync for subscription state
+- free vs Premium gating enforced in the app
+
+Required webhook endpoint:
+
+- `https://your-domain.example/webhooks/stripe.php`
+
+Minimum useful events:
+
+- `checkout.session.completed`
+- `invoice.paid`
+- `invoice.payment_failed`
+- `customer.subscription.updated`
+- `customer.subscription.deleted`
+
+## Storage Overview
+
+VIDEW supports multiple media sources:
 
 - local uploads under `storage/uploads`
 - Wasabi object storage
 - external direct video URLs
 - external embed URLs for supported providers
 
-The active storage driver and Wasabi credentials can be managed from `Admin > Storage`.
+This makes it possible to start simple with local uploads and move to object storage later without rewriting the public product.
 
 ## Security Notes
 
-- Delete `install.php` after the initial setup finishes.
-- The repository includes an Apache `.htaccess` for blocking sensitive files. If you deploy with `nginx` or `IIS`, add equivalent rules at the server level using the examples in `deploy/nginx.conf.example` and `deploy/web.config`.
-- The installer locks itself after a successful run. Remove the lock file manually only if you intentionally need to reinstall.
-- Premium local media is routed through `media.php` and access-checked server-side.
-- Password reset links are not shown publicly unless `VIDEW_DEBUG_EXPOSE_RESET_LINKS=1`.
-- Set `VIDEW_BASE_URL`, `VIDEW_TRUSTED_HOSTS`, and `VIDEW_SESSION_SECURE_COOKIE=1` correctly in production. Enable `VIDEW_TRUST_PROXY_HEADERS=1` only when you control the reverse proxy in front of PHP.
-- If you inject third-party scripts into the public `<head>`, review the default CSP and override `VIDEW_SECURITY_CONTENT_SECURITY_POLICY` when a provider requires additional origins.
+- delete `install.php` after installation
+- keep `.env`, uploaded media, and runtime files private
+- use the provided Apache, Nginx, or IIS blocking rules for sensitive files
+- review `VIDEW_PUBLIC_HEAD_SCRIPTS` carefully before pasting third-party snippets
+- password reset links are only publicly exposed when `VIDEW_DEBUG_EXPOSE_RESET_LINKS=1`
+- Premium local media is access-checked server-side through `media.php`
 
-## Frontend Development
+See [SECURITY.md](SECURITY.md) for the reporting process and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for production reminders.
 
-You only need `npm` for local dependency maintenance.
+## Frontend Runtime
 
-Commands:
+The frontend runtime is built with `gUI`.
+
+- GitHub: `https://github.com/gadevsbr/gUI`
+- npm: `https://www.npmjs.com/package/@bragamateus/gui`
+
+The repository keeps a vendored runtime copy in `assets/vendor/gui` so production servers do not need `node_modules`.
+
+If you update the dependency locally, run:
 
 ```bash
 npm install
-npm run check:js
 npm run sync:gui
 ```
 
-Production hosting does not need `npm install` as long as `assets/vendor/gui` is present.
-
-## Licensing
-
-- License: [VIDEW Source Available Non-Commercial License 1.0](LICENSE)
-- Commercial licensing contact: `gadevs2020@gmail.com`
-- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
-- Security reporting: [SECURITY.md](SECURITY.md)
-
-Because commercial use is restricted, `VIDEW` is source-available rather than OSI open source.
-
-The repository is prepared to stay public:
-
-- `.env`, uploaded media, runtime cache, archives, and `node_modules` stay ignored
-- `.env.example` contains placeholder values only
-- the runtime asset required by the frontend is committed in `assets/vendor/gui`
-
-## Validation
+## Development Checks
 
 Typical checks after changes:
 
@@ -196,3 +334,45 @@ php -l admin.php
 php -l index.php
 npm run check:js
 ```
+
+## License and Commercial Usage
+
+VIDEW is **source-available**, not OSI-approved open source.
+
+License:
+
+- [VIDEW Source Available Non-Commercial License 1.0](LICENSE)
+
+Commercial use requires prior authorization. That includes paid products, hosted services, monetized sites, client work, agency delivery, or other revenue-generating usage.
+
+Commercial licensing contact:
+
+- `gadevs2020@gmail.com`
+
+## Contributing
+
+Contributions are welcome within the limits of the project license.
+
+- read [CONTRIBUTING.md](CONTRIBUTING.md)
+- report security issues privately through [SECURITY.md](SECURITY.md)
+- open issues for bugs, docs improvements, and focused feature discussions
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for near-term priorities, mid-term work, and long-term direction.
+
+## Support and Contact
+
+- licensing and commercial inquiries: `gadevs2020@gmail.com`
+- security reports: `gadevs2020@gmail.com`
+- project feedback: GitHub issues and discussions
+
+## Feedback, Issues, and Stars
+
+If VIDEW is useful to you:
+
+- star the repository
+- open an issue when you hit friction or find a bug
+- share feedback on setup, hosting compatibility, billing, or creator workflows
+
+That feedback is especially useful while the project is becoming a more polished public starter.

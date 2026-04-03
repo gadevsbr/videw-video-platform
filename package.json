@@ -1,7 +1,7 @@
 {
   "name": "videw",
   "version": "1.0.0",
-  "description": "Source-available video platform starter using PHP, MySQL, JavaScript, CSS, and @bragamateus/gui",
+  "description": "Source-available PHP video platform starter with subscriptions, creator workflows, and an admin suite",
   "scripts": {
     "check:js": "node --check assets/js/app.js",
     "sync:gui": "node scripts/sync-gui-runtime.mjs"
@@ -9,8 +9,12 @@
   "keywords": [
     "php",
     "mysql",
+    "subscriptions",
     "stripe",
+    "wasabi",
     "gui",
+    "creator-platform",
+    "admin-dashboard",
     "video-platform"
   ],
   "author": "",
