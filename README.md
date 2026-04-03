@@ -92,26 +92,6 @@ VIDEW is probably not the right choice if you need:
 - creator studio with publish, manage, analytics, and profile screens
 - public creator channel pages with avatar, banner, bio, and channel slug
 
-## Demo / Screenshots
-
-**Demo coming soon.**
-
-If you are the maintainer, add screenshots or GIFs for:
-
-1. homepage / browse experience
-2. player page
-3. admin dashboard
-4. creator studio
-5. billing / Premium page
-
-Recommended structure:
-
-- `docs/screenshots/home.png`
-- `docs/screenshots/player.png`
-- `docs/screenshots/admin.png`
-- `docs/screenshots/studio.png`
-
-Then embed them here with standard Markdown image links.
 
 ## Use Cases
 
