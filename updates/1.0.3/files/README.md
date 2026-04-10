@@ -1,23 +1,38 @@
 # VIDEW
 
+[![Version](https://img.shields.io/badge/version-1.0.3-f5b301)](CHANGELOG.md)
+![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4)
+![MySQL](https://img.shields.io/badge/MySQL-5.7%2B%20%2F%20MariaDB-10.4%2B-00618a)
+![License](https://img.shields.io/badge/license-source--available-black)
+
 Source-available PHP video platform starter with subscriptions, creator workflows, and an admin suite.
 
-VIDEW is built for teams that want to launch a branded video product without starting from a framework-heavy codebase. It combines a public catalog, gated Premium access, creator applications, a creator studio, Stripe billing, flexible media storage, and a multi-screen admin area in a stack that still works on shared hosting and small VPS deployments.
+VIDEW is built for teams that want a working video product foundation without rebuilding catalog, access control, creator tooling, billing, and admin operations from scratch. It combines a public library, gated Premium access, creator applications, a creator studio, Stripe billing, flexible media storage, and a multi-screen admin area in a stack that still fits shared hosting and small VPS deployments.
 
 Commercial use is **not included by default**. This repository is distributed under a source-available non-commercial license. If you want to use VIDEW in a paid product, a client project, a hosted service, or any revenue-generating environment, contact `gadevs2020@gmail.com` for authorization. See [LICENSE](LICENSE).
 
+## Out Of The Box
+
+- public homepage, browse flow, support pages, and video watch experience
+- Premium membership flow with Stripe Checkout and Billing Portal
+- creator applications, approval flow, creator studio, and public channel pages
+- admin workspace for catalog, moderation, users, billing, storage, copy, legal, and analytics
+- local uploads, Wasabi storage, direct video URLs, and supported embeds
+- shared-hosting-friendly PHP/MySQL stack with web installer support
+
 ## Why Videw
 
-- Launch faster with a production-oriented PHP/MySQL starter instead of wiring subscriptions, uploads, and account flows from scratch.
-- Run on lightweight hosting: shared hosting, cPanel-style environments, and small VPS setups are all supported.
-- Mix free and Premium content in one product with clear gating rules.
-- Support creators with public channel pages, creator applications, a studio, analytics, and profile assets.
-- Manage content, billing, legal text, footer links, and public copy from the admin area.
-- Keep the frontend lightweight with `gUI` while still shipping a modern catalog and player experience.
+- Skip the slow part of the build. VIDEW already wires together accounts, gated playback, billing, creator workflows, and admin tooling.
+- Stay in plain PHP. The codebase is direct, inspectable, and deployable without committing to a large framework stack.
+- Launch with operational surfaces included. Moderation, legal copy, billing settings, storage settings, analytics, and audit visibility already exist.
+- Support both free and paid content. You can run an open catalog, a Premium library, or a mixed model from the same product.
+- Keep hosting flexible. The project is designed to run on lightweight environments, including shared hosting and modest VPS setups.
 
 ## What This Project Is
 
-VIDEW is a source-available starter for:
+VIDEW is a source-available starter for teams that need more than a landing page and less than a fully custom platform build.
+
+Typical fits:
 
 - subscription video platforms
 - membership-based content libraries
@@ -25,14 +40,14 @@ VIDEW is a source-available starter for:
 - private catalog products with free and paid access tiers
 - internal or client-evaluated product prototypes that need real account, billing, and admin workflows
 
-It is intentionally flexible. You can run it as a general video platform, or enable optional controls such as an age gate when your use case requires them.
+It is intentionally flexible. You can run it as a general video product, a gated membership library, or a creator-led platform with staff review. Optional controls such as an age gate can be enabled when the use case requires them.
 
 ## Who This Is For
 
-- developers who want a plain PHP codebase instead of a framework-heavy stack
-- founders validating a niche video membership product
-- agencies building an internal evaluation, proof of concept, or non-commercial prototype
-- teams that need admin workflows, billing, and media storage options already wired together
+- developers who want a plain PHP codebase instead of a Laravel, Symfony, or React-heavy stack
+- founders validating a niche subscription or membership video product
+- agencies building a serious prototype, internal evaluation, or client demo with real workflows
+- teams that want billing, uploads, moderation, and admin controls already connected on day one
 
 ## When This Is Not a Fit
 
@@ -43,54 +58,52 @@ VIDEW is probably not the right choice if you need:
 - a permissive OSI-approved open-source license
 - a React / Laravel / Symfony codebase
 - commercial deployment rights without separate authorization
+- a turnkey no-code product with hosted support and zero operational responsibility
 
 ## Key Features
 
-### Public product
+### Public experience
 
-- public homepage, browse flow, player page, support page, legal pages, and account pages
-- free vs Premium video access rules
+- homepage, browse flow, player page, support pages, legal pages, and account surfaces
+- free versus Premium access rules in the same catalog
 - optional age gate and cookie notice
-- configurable footer, legal page copy, and public text from the admin panel
+- editable public copy, footer links, and legal text from admin
 
-### Accounts and security
+### Accounts and member security
 
 - email/password registration and sign-in
 - password reset flow
-- TOTP-based MFA with backup codes
-- session hardening, CSRF protection, and rate limiting on sensitive flows
+- TOTP MFA with backup codes
+- CSRF protection, rate limiting, and session hardening on sensitive flows
 
-### Billing
+### Monetization
 
-- Stripe Hosted Checkout for new Premium subscriptions
-- Stripe Billing Portal for self-service plan management
-- webhook-based subscription sync back into the local account model
+- Stripe Hosted Checkout for Premium signup
+- Stripe Billing Portal for self-service subscription management
+- webhook-driven membership sync back into the local account model
 
-### Media and storage
+### Media delivery
 
-- local file uploads
+- local uploads
 - Wasabi object storage
-- external direct video URLs
-- external embed support for supported providers
-- private Wasabi playback support with signed URLs/proxying where applicable
+- direct external video URLs
+- supported external embeds
+- private Wasabi playback with signed delivery where applicable
 
-### Admin suite
+### Creator workflow
 
-- content publishing and editing
-- moderation queue
-- user management
+- creator application flow
+- admin approval path
+- creator studio with publish, manage, analytics, and profile screens
+- public creator channel pages with avatar, banner, bio, and slug
+
+### Admin operations
+
+- publishing, editing, moderation, and user management
 - creator request review
 - billing and storage configuration
-- legal/footer/site settings
-- public copy editing
-- audit activity log
-
-### Creator workflows
-
-- "Become creator" request flow
-- creator approval path in admin
-- creator studio with publish, manage, analytics, and profile screens
-- public creator channel pages with avatar, banner, bio, and channel slug
+- copy, legal, and footer management
+- analytics, release visibility, and audit activity
 
 
 ## Use Cases
@@ -110,6 +123,27 @@ VIDEW is probably not the right choice if you need:
 - Stripe for subscriptions
 - Wasabi or local disk for storage
 
+## Screenshots
+
+Captured from a local `1.0.3` install using the demo seed so the README reflects the real product surfaces instead of static mockups.
+
+<p>
+  <img src="docs/screenshots/preview.gif" alt="VIDEW product preview">
+</p>
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/home.png" alt="VIDEW homepage"></td>
+    <td><img src="docs/screenshots/watch.png" alt="VIDEW watch page"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/studio-overview.png" alt="VIDEW creator studio"></td>
+    <td><img src="docs/screenshots/admin-overview.png" alt="VIDEW admin overview"></td>
+  </tr>
+</table>
+
+These screenshots were captured from a local `1.0.3` demo install to reflect the real product surfaces shown in this repository.
+
 ## Project Structure
 
 - `index.php`: public homepage
@@ -126,7 +160,16 @@ VIDEW is probably not the right choice if you need:
 
 ## Quick Start
 
-### Option 1: Web installer
+### Fastest evaluation path
+
+1. Import `db/schema.sql`.
+2. Import `db/seed-demo.sql`.
+3. Open `install.php` or configure `.env` manually.
+4. Sign in with the demo accounts below and inspect the public site, creator studio, and admin workspace.
+
+If you only want to validate the product locally, this is the shortest path. Most evaluators do not need to start with a blank database.
+
+### Option 1: Web installer (recommended)
 
 1. Upload the repository to your server.
 2. Open `https://your-domain.example/install.php`.
@@ -149,6 +192,18 @@ Database note:
 - `db/schema.sql` always represents the full schema for the current project version on a fresh install
 - versioned upgrade SQL files are only for existing installations that are already running an older release
 - when upgrade scripts are needed, they live under `updates/<version>/sql/`
+
+### Demo credentials
+
+If you import `db/seed-demo.sql`, you can explore the seeded surfaces immediately with these accounts:
+
+| Area | Email | Password |
+| --- | --- | --- |
+| Admin workspace | `admin@videw.test` | `Admin@123` |
+| Creator studio | `nadia@videw.test` | `Creator@123` |
+| Member / Premium | `jordan@videw.test` | `Premium@123` |
+
+These credentials are for local/demo evaluation only and should never remain active in a real deployment.
 
 ### Option 2: Manual install
 

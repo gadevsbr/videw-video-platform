@@ -38,6 +38,16 @@ This folder packages the project files changed for version `1.0.3`.
 - `updates/1.0.3/sql/002-video-moderation-reasons.sql`
 - `updates/1.0.3/sql/upgrade-20260402-ad-slots.sql`
 - `updates/1.0.3/sql/upgrade-20260403-ad-preroll-vast.sql`
+- `docs/screenshots/admin-analytics.png`
+- `docs/screenshots/admin-moderation.png`
+- `docs/screenshots/admin-overview.png`
+- `docs/screenshots/browse.png`
+- `docs/screenshots/home.png`
+- `docs/screenshots/premium.png`
+- `docs/screenshots/preview.gif`
+- `docs/screenshots/studio-analytics.png`
+- `docs/screenshots/studio-overview.png`
+- `docs/screenshots/watch.png`
 - `docs/BACKUP_RESTORE.md`
 - `docs/RELEASE_PROCESS.md`
 - `docs/ROADMAP_STATUS.md`

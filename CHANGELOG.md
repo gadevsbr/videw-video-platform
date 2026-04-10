@@ -17,8 +17,12 @@ All notable changes to this project will be documented in this file.
 - Added `docs/BACKUP_RESTORE.md` to document how admin exports fit into full backup and restore workflows for existing installations.
 - Added `docs/RELEASE_PROCESS.md` to formalize how app versions, changelog entries, fresh-install schema changes, and incremental upgrade SQL must stay aligned for each release.
 - Added a packaged release snapshot under `updates/1.0.3/` so the files changed for this version are grouped in one version-specific folder.
+- Added optimized README screenshots captured from a real local demo install, including an animated `preview.gif` and multiple real product surfaces.
 
 ### Improved
+- Improved the README presentation with top-level stack/version badges, a clearer "out of the box" summary, and seeded demo credentials for faster local evaluation.
+- Improved the README conversion flow by sharpening the value proposition, clarifying best-fit versus bad-fit use cases, and adding a faster evaluation path near setup.
+- Improved the README structure again by tightening the feature summary and making the recommended evaluation/install flow easier to scan.
 - Improved the admin `Billing` screen with webhook diagnostics showing the latest event state, processed/failed counts, duplicate counts, and the last recorded error.
 - Improved billing operations with a clearer webhook queue view, retry counts, failure counts, and recent-event history instead of only a single latest-event snapshot.
 - Improved admin operations by making exports usable per screen, so library and users can now be exported with the active filters instead of only through a generic settings backup.

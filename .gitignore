@@ -36,6 +36,7 @@ Desktop.ini
 
 # Dependency directories not used in repo
 /vendor/
+/scripts/
 /skills/
 /.codex/
 /.agents/
