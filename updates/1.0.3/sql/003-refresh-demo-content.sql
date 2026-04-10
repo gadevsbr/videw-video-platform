@@ -1,6 +1,6 @@
--- VIDEW demo seed
--- Resets and imports sample users, creators, creator requests, videos, ads, analytics, and audit logs.
--- WARNING: demo-only content reset. Do not import this file into a live production database.
+-- VIDEW 1.0.3 demo refresh
+-- Resets and imports the full demo dataset for existing installs that should mirror the current 1.0.3 showcase content.
+-- WARNING: destructive demo-only reset. Do not import this file into a live production database.
 -- Demo sign-in credentials:
 -- admin@videw.test / Admin@123
 -- nadia@videw.test / Creator@123

@@ -168,6 +168,7 @@ VIDEW is probably not the right choice if you need:
 4. Sign in with the demo accounts below and inspect the public site, creator studio, and admin workspace.
 
 If you only want to validate the product locally, this is the shortest path. Most evaluators do not need to start with a blank database.
+`db/seed-demo.sql` is for demo environments only and resets demo content tables before importing the showcase dataset.
 
 ### Option 1: Web installer (recommended)
 
@@ -213,6 +214,8 @@ These credentials are for local/demo evaluation only and should never remain act
 4. Import `db/schema.sql`.
 5. Optionally import `db/seed-demo.sql` if you include a demo seed file in your deployment.
 6. Open `register.php` and create the first account.
+
+Do not import `db/seed-demo.sql` into a live site. It is a destructive demo reset intended only for local previews, staging demos, or fresh evaluation environments.
 
 For existing installs upgrading from an older release:
 

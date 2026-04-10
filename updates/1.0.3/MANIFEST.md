@@ -19,6 +19,7 @@ This folder packages the project files changed for version `1.0.3`.
 - `admin.php`
 - `config/app.php`
 - `db/schema.sql`
+- `db/seed-demo.sql`
 - `docs/DEPLOYMENT.md`
 - `install.php`
 - `package.json`
@@ -36,6 +37,7 @@ This folder packages the project files changed for version `1.0.3`.
 
 - `updates/1.0.3/sql/001-schema-version-tracking.sql`
 - `updates/1.0.3/sql/002-video-moderation-reasons.sql`
+- `updates/1.0.3/sql/003-refresh-demo-content.sql`
 - `updates/1.0.3/sql/upgrade-20260402-ad-slots.sql`
 - `updates/1.0.3/sql/upgrade-20260403-ad-preroll-vast.sql`
 - `docs/screenshots/admin-analytics.png`
