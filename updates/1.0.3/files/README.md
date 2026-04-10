@@ -11,6 +11,27 @@ VIDEW is built for teams that want a working video product foundation without re
 
 Commercial use is **not included by default**. This repository is distributed under a source-available non-commercial license. If you want to use VIDEW in a paid product, a client project, a hosted service, or any revenue-generating environment, contact `gadevs2020@gmail.com` for authorization. See [LICENSE](LICENSE).
 
+## Screenshots
+
+Captured from a local `1.0.3` install using the demo seed so the README reflects the real product surfaces instead of static mockups.
+
+<p>
+  <img src="docs/screenshots/preview.gif" alt="VIDEW product preview">
+</p>
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/home.png" alt="VIDEW homepage"></td>
+    <td><img src="docs/screenshots/watch.png" alt="VIDEW watch page"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/studio-overview.png" alt="VIDEW creator studio"></td>
+    <td><img src="docs/screenshots/admin-overview.png" alt="VIDEW admin overview"></td>
+  </tr>
+</table>
+
+These screenshots were captured from a local `1.0.3` demo install to reflect the real product surfaces shown in this repository.
+
 ## Out Of The Box
 
 - public homepage, browse flow, support pages, and video watch experience
@@ -122,27 +143,6 @@ VIDEW is probably not the right choice if you need:
 - [`gUI`](https://github.com/gadevsbr/gUI) for frontend runtime
 - Stripe for subscriptions
 - Wasabi or local disk for storage
-
-## Screenshots
-
-Captured from a local `1.0.3` install using the demo seed so the README reflects the real product surfaces instead of static mockups.
-
-<p>
-  <img src="docs/screenshots/preview.gif" alt="VIDEW product preview">
-</p>
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/home.png" alt="VIDEW homepage"></td>
-    <td><img src="docs/screenshots/watch.png" alt="VIDEW watch page"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/studio-overview.png" alt="VIDEW creator studio"></td>
-    <td><img src="docs/screenshots/admin-overview.png" alt="VIDEW admin overview"></td>
-  </tr>
-</table>
-
-These screenshots were captured from a local `1.0.3` demo install to reflect the real product surfaces shown in this repository.
 
 ## Project Structure
 
