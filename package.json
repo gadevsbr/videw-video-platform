@@ -1,6 +1,6 @@
 {
   "name": "videw",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Source-available PHP video platform starter with subscriptions, creator workflows, and an admin suite",
   "scripts": {
     "check:js": "node --check assets/js/app.js",

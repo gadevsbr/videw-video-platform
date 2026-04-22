@@ -1373,3 +1373,69 @@ mountAdminMediaForms();
 mountCopyEditor();
 mountAdSlotBrowser();
 mountAdEditors();
+
+// --- TACTICAL UI ENHANCEMENTS (v1.0.4) ---
+
+/**
+ * Tactical Toast Notification System
+ */
+window.toast = function(title, message, duration = 5000) {
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <span class="toast__title">${title}</span>
+    <span class="toast__message">${message}</span>
+  `;
+
+  container.appendChild(toast);
+
+  const close = () => {
+    toast.classList.add('toast--closing');
+    setTimeout(() => toast.remove(), 300);
+  };
+
+  toast.onclick = close;
+  setTimeout(close, duration);
+};
+
+/**
+ * Admin Live Search
+ * Automatically filters cards/rows based on search input
+ */
+document.addEventListener('DOMContentLoaded', () => {
+  const adminSearch = document.querySelector('.admin-toolbar input[type="search"]');
+  const libraryGrid = document.querySelector('.admin-library-grid');
+  const worklist = document.querySelector('.admin-worklist');
+
+  if (adminSearch && (libraryGrid || worklist)) {
+    adminSearch.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      const items = (libraryGrid || worklist).querySelectorAll('article');
+
+      items.forEach(item => {
+        const text = item.innerText.toLowerCase();
+        if (text.includes(term)) {
+          item.style.display = '';
+          item.style.animation = 'toast-in 0.3s ease forwards';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  // Show a welcome toast if on overview
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('screen') === 'overview' || !urlParams.get('screen')) {
+    setTimeout(() => {
+      window.toast('System Online', 'VIDEW 1.0.4 Command Center is ready.');
+    }, 1000);
+  }
+});

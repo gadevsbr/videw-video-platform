@@ -1,6 +1,6 @@
 # VIDEW
 
-[![Version](https://img.shields.io/badge/version-1.0.3-f5b301)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.4-f5b301)](CHANGELOG.md)
 ![PHP](https://img.shields.io/badge/PHP-8.1%2B-777bb4)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B%20%2F%20MariaDB-10.4%2B-00618a)
 ![License](https://img.shields.io/badge/license-source--available-black)
@@ -13,7 +13,7 @@ Commercial use is **not included by default**. This repository is distributed un
 
 ## Screenshots
 
-Captured from a local `1.0.3` install using the demo seed so the README reflects the real product surfaces instead of static mockups.
+Captured from a local `1.0.4` install using the demo seed so the README reflects the real product surfaces instead of static mockups.
 
 <p>
   <img src="docs/screenshots/preview.gif" alt="VIDEW product preview">
@@ -30,7 +30,7 @@ Captured from a local `1.0.3` install using the demo seed so the README reflects
   </tr>
 </table>
 
-These screenshots were captured from a local `1.0.3` demo install to reflect the real product surfaces shown in this repository.
+These screenshots were captured from a local `1.0.4` demo install to reflect the real product surfaces shown in this repository.
 
 ## Out Of The Box
 

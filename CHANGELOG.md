@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.4] - 2026-04-22
+
+### Added
+- Added `src/Controllers/AdminController.php` to centralize administrative POST actions, improving security and code organization.
+- Added HSL-based premium design system to `app.css` featuring tactical micro-animations, glassmorphism, and semantic color tokens.
+- Added semantic status pills (`stat-pill`) and "Tactical Green" components across the entire administrative suite.
+- Added customized global "HUD Style" scrollbars and removed default numeric input spinners for a cleaner UI.
+- Added "Amber Toast" notification system for real-time tactical feedback.
+- Added SVG Sparklines to Overview KPI cards for visual trend monitoring.
+- Added "Live Search" functionality to library and activity feeds for instant results without page reloads.
+
+### Changed
+- Modernized all 14 administrative screens (Overview, Analytics, Storage, Billing, Publish, Library, Moderation, Creator Requests, Users, Settings, Ads, Copy, Legal, Activity) with improved visual hierarchy.
+- Refactored the monolithic `admin.php` controller into a modular template-based architecture using `partials/admin/` includes.
+- Updated `app.css` variables to a modern HSL system for better theme consistency and easier design manipulation.
+- Optimized technical "Micro-Badges" on admin thumbnails for better media visibility.
+- Improved button responsiveness and text alignment, resolving overflow in long-text actions.
+- Redesigned the Activity Log with a "Tactical Terminal" aesthetic using monospaced typography.
+
+### Fixed
+- Audited and hardened admin action routing to prevent potential IDOR vulnerabilities.
+- Standardized output escaping and CSRF verification across all newly modularized admin partials.
+- Fixed layout artifacts ("ghosting") in the administrative library grid by correcting grid column definitions.
+- Fixed unreadable text on ghost/secondary buttons by increasing contrast on dark backgrounds.
+- Fixed vertical alignment for all administrative checkboxes and labels.
+- Corrected a syntax error in the `.env` version tracking line.
+
 ## [1.0.3] - 2026-04-09
 
 ### Added

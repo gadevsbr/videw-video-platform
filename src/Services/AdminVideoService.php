@@ -122,6 +122,14 @@ final class AdminVideoService
         $this->assertUploadStatus($files['video_file'] ?? null, 'video');
         $this->assertUploadStatus($files['poster_file'] ?? null, 'poster');
 
+        if (isset($files['video_file']) && uploaded_file_present($files['video_file'])) {
+            $this->assertMimeType($files['video_file'], ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'], 'video');
+        }
+
+        if (isset($files['poster_file']) && uploaded_file_present($files['poster_file'])) {
+            $this->assertMimeType($files['poster_file'], ['image/jpeg', 'image/png', 'image/webp'], 'poster');
+        }
+
         $title = trim($input['title'] ?? (string) ($existing['title'] ?? ''));
         $synopsis = trim($input['synopsis'] ?? (string) ($existing['synopsis'] ?? ''));
         $forcedCreatorName = trim((string) ($options['creator_name'] ?? ''));
@@ -317,6 +325,24 @@ final class AdminVideoService
         };
 
         throw new RuntimeException($message);
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @param array<int, string> $allowedMimes
+     */
+    private function assertMimeType(array $file, array $allowedMimes, string $label): void
+    {
+        if (!isset($file['tmp_name']) || $file['tmp_name'] === '') {
+            return;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        if (!in_array($mime, $allowedMimes, true)) {
+            throw new RuntimeException(sprintf('Invalid %s file type. Detected: %s. Allowed: %s', $label, $mime, implode(', ', $allowedMimes)));
+        }
     }
 
     /**

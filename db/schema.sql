@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Tempo de geração: 31/03/2026 às 03:41
+-- Tempo de geração: 22/04/2026 às 15:00
 -- Versão do servidor: 8.4.7
 -- Versão do PHP: 8.3.28
 
@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS `schema_migrations` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `schema_migrations` (`version`, `filename`, `notes`)
-VALUES ('1.0.3', 'schema.sql', 'Fresh install baseline for 1.0.3');
+VALUES ('1.0.4', 'schema.sql', 'Fresh install baseline for 1.0.4');
 
 -- --------------------------------------------------------
 

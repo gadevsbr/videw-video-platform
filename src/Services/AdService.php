@@ -90,6 +90,7 @@ final class AdService
         }
 
         if (isset($files['image_file']) && is_array($files['image_file']) && uploaded_file_present($files['image_file'])) {
+            $this->assertMimeType($files['image_file'], ['image/jpeg', 'image/png', 'image/webp'], 'ad image');
             $upload = $this->storage->driver()->storeUploadedFile($files['image_file'], 'ads');
 
             $this->cleanup->removePath(
@@ -103,6 +104,7 @@ final class AdService
         }
 
         if (isset($files['video_file']) && is_array($files['video_file']) && uploaded_file_present($files['video_file'])) {
+            $this->assertMimeType($files['video_file'], ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm'], 'ad video');
             $upload = $this->storage->driver()->storeUploadedFile($files['video_file'], 'ad-videos');
 
             $this->cleanup->removePath(
@@ -222,5 +224,23 @@ final class AdService
             str_ends_with($path, '.mov') => 'video/quicktime',
             default => 'video/mp4',
         };
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @param array<int, string> $allowedMimes
+     */
+    private function assertMimeType(array $file, array $allowedMimes, string $label): void
+    {
+        if (!isset($file['tmp_name']) || $file['tmp_name'] === '') {
+            return;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        if (!in_array($mime, $allowedMimes, true)) {
+            throw new RuntimeException(sprintf('Invalid %s file type. Detected: %s. Allowed: %s', $label, $mime, implode(', ', $allowedMimes)));
+        }
     }
 }

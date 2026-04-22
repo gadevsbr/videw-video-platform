@@ -80,6 +80,14 @@ final class CreatorService
         $this->assertUploadStatus($files['avatar_file'] ?? null, 'avatar');
         $this->assertUploadStatus($files['banner_file'] ?? null, 'banner');
 
+        if (isset($files['avatar_file']) && uploaded_file_present($files['avatar_file'])) {
+            $this->assertMimeType($files['avatar_file'], ['image/jpeg', 'image/png', 'image/webp'], 'avatar');
+        }
+
+        if (isset($files['banner_file']) && uploaded_file_present($files['banner_file'])) {
+            $this->assertMimeType($files['banner_file'], ['image/jpeg', 'image/png', 'image/webp'], 'banner');
+        }
+
         $channelName = trim((string) ($input['creator_display_name'] ?? creator_public_name($user)));
         $bio = trim((string) ($input['creator_bio'] ?? (string) ($user['creator_bio'] ?? '')));
         $slugInput = trim((string) ($input['creator_slug'] ?? (string) ($user['creator_slug'] ?? '')));
@@ -212,5 +220,23 @@ final class CreatorService
         };
 
         throw new RuntimeException($message);
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @param array<int, string> $allowedMimes
+     */
+    private function assertMimeType(array $file, array $allowedMimes, string $label): void
+    {
+        if (!isset($file['tmp_name']) || $file['tmp_name'] === '') {
+            return;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mime = $finfo->file($file['tmp_name']);
+
+        if (!in_array($mime, $allowedMimes, true)) {
+            throw new RuntimeException(sprintf('Invalid %s file type. Detected: %s. Allowed: %s', $label, $mime, implode(', ', $allowedMimes)));
+        }
     }
 }
